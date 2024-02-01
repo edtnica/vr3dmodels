@@ -31,7 +31,7 @@ void cameraCalibration::calibCamera(cv::Mat &cameraMatrix, cv::Mat &distCoeffs, 
 
     std::vector<cv::String> images;
     
-    cv::glob("C:/Programs and Stuff/vr3dmodels/calibration/checkerboardImgs/*.jpg", images);
+    cv::glob("C:/Programs and Stuff/vr3dmodels/calibration/checkerboardImgs4k/*.jpg", images);
 
     cv::Mat frame, gray;
     std::vector<cv::Point2f> corner_points;
@@ -61,5 +61,5 @@ void cameraCalibration::calibCamera(cv::Mat &cameraMatrix, cv::Mat &distCoeffs, 
 
     cv::calibrateCamera(objpoints, imgpoints, cv::Size(gray.rows,gray.cols), cameraMatrix, distCoeffs, R, T);
 
-    export_to_xml("cameraMatrix", cameraMatrix, distCoeffs);
+    export_to_xml("cameraMatrix2", cameraMatrix, distCoeffs);
 }
