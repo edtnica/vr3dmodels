@@ -41,24 +41,58 @@ void structureFromMotion::loadImages() {
 
 }
 
+void structureFromMotion::showFeatures(cv::Mat img, std::vector<cv::KeyPoint> kps) {
+	cv::Mat outputImg;
+	// Draw only keypoints location
+	drawKeypoints(img, kps, outputImg, cv::Scalar::all(-1), cv::DrawMatchesFlags::DEFAULT);
+	cv::resize(outputImg, outputImg, cv::Size(1920, 1080));
+	cv::imshow("FeatureDetection", outputImg);
+	cv::waitKey(0);
+}
+
+void structureFromMotion::showMatches(int rightIdx, int leftIdx, std::vector<cv::DMatch> matches) {
+	cv::Mat img_matches;
+	drawMatches(images[rightIdx], imagesKps[rightIdx], images[leftIdx], imagesKps[leftIdx],
+				matches, img_matches, cv::Scalar::all(-1), cv::Scalar::all(-1),
+				std::vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
+	cv::resize(img_matches, img_matches, cv::Size(1920, 1080));
+	cv::imshow("Matches", img_matches);
+	cv::waitKey(0);
+}
+
 void structureFromMotion::featureDetect(detectorType detectorName, cv::Mat img, int imgIdx) {
 	std::vector<cv::KeyPoint> keypoints;
     cv::Mat descriptors;
 	
 	switch (detectorName) {
+		case ORB: {
+			cv::Ptr<cv::ORB> detector = cv::ORB::create(5000);
+        	detector->detectAndCompute(img, cv::noArray(), keypoints, descriptors);
+			break;
+		}
 		case SURF: {
 			cv::Ptr<cv::xfeatures2d::SurfFeatureDetector> detector = cv::xfeatures2d::SurfFeatureDetector::create();
 			detector->detectAndCompute(img, cv::noArray(), keypoints, descriptors);
 			break;
 		}
-		case ORB: {
-			cv::Ptr<cv::ORB> detector = cv::ORB::create(5000);
-        	detector->detectAndCompute(img, cv::noArray(), keypoints, descriptors);
+		case SIFT: {
+			cv::Ptr<cv::Feature2D> detector = cv::SIFT::create();
+			detector->detectAndCompute(img, cv::noArray(), keypoints, descriptors);
 			break;
-		}	
+		}
+		case FAST: {
+			cv::Ptr<cv::FastFeatureDetector> detector = cv::FastFeatureDetector::create();
+			detector->detectAndCompute(img, cv::noArray(), keypoints, descriptors);
+			break;
+		}
 		case AKAZE: {
 			cv::Ptr<cv::AKAZE> detector = cv::AKAZE::create();
     		detector->detectAndCompute(img, cv::noArray(), keypoints, descriptors);
+			break;
+		}
+		case BRISK: {
+			cv::Ptr<cv::BRISK> detector = cv::BRISK::create();
+			detector->detectAndCompute(img, cv::noArray(), keypoints, descriptors);
 			break;
 		}
 	}
@@ -69,12 +103,7 @@ void structureFromMotion::featureDetect(detectorType detectorName, cv::Mat img, 
 	imagesDesc[imgIdx] = descriptors;
 	imagesPts2D[imgIdx] = pts2d;
 
-	cv::Mat outputImg;
-	// Draw only keypoints location
-	drawKeypoints(img, keypoints, outputImg, cv::Scalar::all(-1), cv::DrawMatchesFlags::DEFAULT);
-	cv::resize(outputImg, outputImg, cv::Size(1920, 1080));
-	cv::imshow("FeatureDetection", outputImg);
-	cv::waitKey(0);
+	showFeatures(img, keypoints);
 }
 
 void structureFromMotion::getFeatures() {
@@ -89,6 +118,26 @@ void structureFromMotion::getFeatures() {
 		const cv::Mat img = images.at(i);
 		featureDetect(SURF, img, i);
 	}
+}
+
+std::vector<cv::DMatch> structureFromMotion::pruneMatches(cv::Mat &desc_1, std::vector<cv::DMatch> matches) {
+	std::vector<cv::DMatch> good_matches;
+	
+	double max_dist = 0;
+	double min_dist = 100;
+
+	for (int i=0; i<desc_1.rows; i++) {
+		double dist = matches[i].distance;
+		if (dist < min_dist) min_dist = dist;
+		if (dist > max_dist) max_dist = dist;
+	}
+
+	for (int i=0; i<desc_1.rows; i++) {
+		if (matches[i].distance <= std::max(2 * min_dist, 0.02))
+			good_matches.push_back(matches[i]);
+	}
+	
+	return good_matches;
 }
 
 std::vector<cv::DMatch> structureFromMotion::pruneMatchesWithLowe(std::vector<std::vector<cv::DMatch>> knnMatches) {
@@ -108,10 +157,8 @@ void structureFromMotion::featureMatch(matcherType matcherName, cv::Mat &descrip
 	switch (matcherName) {
 		case FLANN: {
 			cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::FLANNBASED);
-			// cv::BFMatcher* matcher = new cv::BFMatcher(cv::NORM_L2, false);
-			// cv::Ptr<cv::DescriptorMatcher> matcher = new cv::BFMatcher(cv::NORM_L2, false);
-			// cv::Ptr<cv::DescriptorMatcher> matcher = cv::BFMatcher::create(cv::NORM_L2);
 			std::vector<std::vector<cv::DMatch>> knn_matches;
+			
 			matcher->knnMatch(descriptors_1, descriptors_2, knn_matches, 2);
 
 			good_matches = pruneMatchesWithLowe(knn_matches);
@@ -123,7 +170,6 @@ void structureFromMotion::featureMatch(matcherType matcherName, cv::Mat &descrip
 
 			// cv::BFMatcher matcher(cv::NORM_HAMMING);
 			cv::BFMatcher matcher(cv::NORM_L2);
-			// cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create("BruteForce-Hamming");
 			// cv::Ptr<cv::DescriptorMatcher> matcher = cv::BFMatcher::create(cv::NORM_L2);
 			// std::vector<cv::DMatch> matches;
 			// matcher->match(descriptors_1, descriptors_2, matches);
@@ -131,22 +177,6 @@ void structureFromMotion::featureMatch(matcherType matcherName, cv::Mat &descrip
 			std::vector<std::vector<cv::DMatch>> knn_matches;
 			// matcher->knnMatch(descriptors_1, descriptors_2, knn_matches, 2);
 			matcher.knnMatch(descriptors_1, descriptors_2, knn_matches, 2);
-
-			// double max_dist = 0;
-			// double min_dist = 100;
-
-			// for (int i=0; i<descriptors_1.rows; i++) {
-			// 	double dist = matches[i].distance;
-			// 	if (dist < min_dist)
-			// 		min_dist = dist;
-			// 	if (dist > max_dist)
-			// 		max_dist = dist;
-			// }
-
-			// for (int i=0; i<descriptors_1.rows; i++) {
-			// 	if (matches[i].distance <= std::max(2 * min_dist, 0.02))
-			// 		good_matches.push_back(matches[i]);
-			// }
 
 			good_matches = pruneMatchesWithLowe(knn_matches);
 
@@ -193,7 +223,6 @@ void structureFromMotion::getCameraMatrix(const std::string path) {
     //                                         				0,  0,  1);
 
 	camMatrix.K = cam_matrix;
-	std::cout<<camMatrix.K<<"\n";
 
 	double k1 = distCoeffs.at<double>(0,0);
     double k2 = distCoeffs.at<double>(0,1);
@@ -205,7 +234,6 @@ void structureFromMotion::getCameraMatrix(const std::string path) {
 	// cv::Mat_<double> dist_coeffs = (cv::Mat_<double>(1, 5) << 0, 0, 0, 0, 0);
 
 	camMatrix.distCoef = dist_coeffs;
-	std::cout<<camMatrix.distCoef<<"\n";
 }
 
 bool structureFromMotion::CheckCoherentRotation(const cv::Mat_<double>& R) {
@@ -429,13 +457,7 @@ void structureFromMotion::baseReconstruction() {
 			continue;
 		}
 
-		cv::Mat img_matches;
-		drawMatches(images[queryImageIdx], imagesKps[queryImageIdx], images[trainImageIdx], imagesKps[trainImageIdx],
-					pruned_matches, img_matches, cv::Scalar::all(-1), cv::Scalar::all(-1),
-					std::vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
-		cv::resize(img_matches, img_matches, cv::Size(1920, 1080));
-		cv::imshow("Matches", img_matches);
-		cv::waitKey(0);
+		showMatches(queryImageIdx, trainImageIdx, pruned_matches);
 
 		std::vector<Point3D> pointCloud;
 		triangulateViews(imagesKps[queryImageIdx], imagesKps[trainImageIdx], pruned_matches, Pleft, Pright, camMatrix, std::make_pair(queryImageIdx, trainImageIdx), pointCloud);
@@ -632,7 +654,6 @@ void structureFromMotion::addViews() {
 			// adjustBundle();
 
 		}
-
 	}
 }
 

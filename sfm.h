@@ -20,8 +20,11 @@ class structureFromMotion {
         std::vector<Point3D> reconstructionCloud;
 
         void loadImages();
+        void showFeatures(cv::Mat img, std::vector<cv::KeyPoint> kps);
+        void showMatches(int rightIdx, int leftIdx, std::vector<cv::DMatch> matches);
         void featureDetect(detectorType detectorName, cv::Mat img, int imgIdx);
         void getFeatures();
+        std::vector<cv::DMatch> structureFromMotion::pruneMatches(cv::Mat &desc_1, std::vector<cv::DMatch> matches);
         std::vector<cv::DMatch> pruneMatchesWithLowe(std::vector<std::vector<cv::DMatch>> knnMatches);
         void featureMatch(matcherType matcherName, cv::Mat &descriptors_1, cv::Mat &descriptors_2, std::vector<cv::DMatch> &good_matches);
         void convert_to_float(cv::Mat &descriptors);

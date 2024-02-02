@@ -1,7 +1,10 @@
 enum detectorType {
-	SURF,
 	ORB,
-	AKAZE
+	SURF,
+	SIFT,
+	FAST,
+	AKAZE,
+	BRISK
 };
 
 enum matcherType {
