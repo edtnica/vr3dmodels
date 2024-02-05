@@ -4,7 +4,7 @@ void structureFromMotion::loadImages() {
 
 	std::cout << "Loading images...\n";
 	std::vector<cv::String> imagesPaths;
-    cv::glob("C:/Programs and Stuff/vr3dmodels/images/painting/*.jpg", imagesPaths);
+    cv::glob("C:/Programs and Stuff/vr3dmodels/images/fountainLowRes/*.jpg", imagesPaths);
 
 	std::sort(imagesPaths.begin(), imagesPaths.end());
 
@@ -116,7 +116,7 @@ void structureFromMotion::getFeatures() {
 
 	for (int i=0; i<images.size(); i++) {
 		const cv::Mat img = images.at(i);
-		featureDetect(SURF, img, i);
+		featureDetect(ORB, img, i);
 	}
 }
 
@@ -153,7 +153,41 @@ std::vector<cv::DMatch> structureFromMotion::pruneMatchesWithLowe(std::vector<st
 	return good_matches;
 }
 
-void structureFromMotion::featureMatch(matcherType matcherName, cv::Mat &descriptors_1, cv::Mat &descriptors_2, std::vector<cv::DMatch> &good_matches) {
+// void structureFromMotion::featureMatch(matcherType matcherName, cv::Mat &descriptors_1, cv::Mat &descriptors_2, std::vector<cv::DMatch> &good_matches) {
+// 	switch (matcherName) {
+// 		case FLANN: {
+// 			cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::FLANNBASED);
+// 			std::vector<std::vector<cv::DMatch>> knn_matches;
+			
+// 			matcher->knnMatch(descriptors_1, descriptors_2, knn_matches, 2);
+
+// 			good_matches = pruneMatchesWithLowe(knn_matches);
+
+// 			break;
+// 		}
+// 		case BF: {
+// 			// if NORM_L@2 or NORM_HAMMING !!!!!!!!!!!!!!
+
+// 			// cv::BFMatcher matcher(cv::NORM_HAMMING);
+// 			cv::BFMatcher matcher(cv::NORM_L2);
+// 			// cv::Ptr<cv::DescriptorMatcher> matcher = cv::BFMatcher::create(cv::NORM_L2);
+// 			// std::vector<cv::DMatch> matches;
+// 			// matcher->match(descriptors_1, descriptors_2, matches);
+
+// 			std::vector<std::vector<cv::DMatch>> knn_matches;
+// 			// matcher->knnMatch(descriptors_1, descriptors_2, knn_matches, 2);
+// 			matcher.knnMatch(descriptors_1, descriptors_2, knn_matches, 2);
+
+// 			good_matches = pruneMatchesWithLowe(knn_matches);
+
+// 			break;
+// 		}
+// 	}
+// }
+
+std::vector<cv::DMatch> structureFromMotion::featureMatch(matcherType matcherName, cv::Mat &descriptors_1, cv::Mat &descriptors_2) {
+	std::vector<cv::DMatch> good_matches;
+	
 	switch (matcherName) {
 		case FLANN: {
 			cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::FLANNBASED);
@@ -166,23 +200,70 @@ void structureFromMotion::featureMatch(matcherType matcherName, cv::Mat &descrip
 			break;
 		}
 		case BF: {
-			// if NORM_L@2 or NORM_HAMMING !!!!!!!!!!!!!!
-
-			// cv::BFMatcher matcher(cv::NORM_HAMMING);
-			cv::BFMatcher matcher(cv::NORM_L2);
+			cv::Ptr<cv::DescriptorMatcher> matcher = cv::BFMatcher::create(cv::NORM_HAMMING);
 			// cv::Ptr<cv::DescriptorMatcher> matcher = cv::BFMatcher::create(cv::NORM_L2);
 			// std::vector<cv::DMatch> matches;
 			// matcher->match(descriptors_1, descriptors_2, matches);
 
 			std::vector<std::vector<cv::DMatch>> knn_matches;
-			// matcher->knnMatch(descriptors_1, descriptors_2, knn_matches, 2);
-			matcher.knnMatch(descriptors_1, descriptors_2, knn_matches, 2);
+			matcher->knnMatch(descriptors_1, descriptors_2, knn_matches, 2);
 
 			good_matches = pruneMatchesWithLowe(knn_matches);
 
 			break;
 		}
 	}
+
+	return good_matches;
+}
+
+void structureFromMotion::createFeatureMatchMatrix() {
+	std::cout<<"Create feature match matrix...\n";
+
+	const size_t imagesNum = images.size();
+	featureMatchMatrix.resize(imagesNum, std::vector<std::vector<cv::DMatch>>(imagesNum));
+
+	std::vector<std::pair<int, int>> imagePairs;
+    for (int i=0; i<imagesNum-1; i++) {
+    	for (int j=i+1; j<imagesNum; j++) {
+        	imagePairs.push_back({i, j});
+    	}
+    }
+
+	size_t pairsNum = imagePairs.size();
+
+	std::vector<std::thread> threads;
+
+	const int threadsNum = std::thread::hardware_concurrency() - 1;
+	
+	int pairsPerThread;
+	if (threadsNum > imagePairs.size()) pairsPerThread = 1;
+	else pairsPerThread = (int)ceilf((float)(pairsNum)/threadsNum);
+
+	std::cout<<"Launch "<<threadsNum<<" threads with "<<pairsPerThread<<" pairs per thread\n";
+
+	for (int threadId = 0; threadId < MIN(threadsNum, pairsNum); threadId++) {
+        threads.push_back(std::thread([&, threadId] {
+            const int startingPair = pairsPerThread * threadId;
+
+            for (int j = 0; j < pairsPerThread; j++) {
+                int pairId = startingPair + j;
+                if (pairId >= pairsNum) {
+                    break;
+                }
+                std::pair<int, int> imgPair = imagePairs[pairId];
+
+                featureMatchMatrix[imgPair.first][imgPair.second] = structureFromMotion::featureMatch(BF, imagesDesc[imgPair.first], imagesDesc[imgPair.second]);
+
+				std::cout<<"Thread "<<threadId<<": Image pair -> "<<imgPair.first<<", "<<imgPair.second<<"\n";
+            }
+        }));
+    }
+
+	for (auto& t : threads) {
+    	t.join();
+    }
+
 }
 
 void structureFromMotion::convert_to_float(cv::Mat &descriptors) {
@@ -193,13 +274,13 @@ void structureFromMotion::convert_to_float(cv::Mat &descriptors) {
 }
 
 // change name to getIntrinsics
-void structureFromMotion::getCameraMatrix(const std::string path) {
+void structureFromMotion::getCameraMatrix() {
 	std::cout << "Getting camera matrix...\n";
 	cv::Mat intrinsics;
 	cv::Mat distCoeffs;
 
 	// Read .xml file
-	cv::FileStorage fs(path, cv::FileStorage::READ);
+	cv::FileStorage fs("C:/Programs and Stuff/vr3dmodels/calibration/cameraMatrix2.xml", cv::FileStorage::READ);
 
 	// Get data from .xml file with Camera_Matrix tag
 	fs["Camera_Matrix"] >> intrinsics;
@@ -210,17 +291,17 @@ void structureFromMotion::getCameraMatrix(const std::string path) {
     double cx = intrinsics.at<double>(0,2);
     double cy = intrinsics.at<double>(1,2);
 
-	cv::Mat_<double> cam_matrix = (cv::Mat_<double>(3, 3)<< fx, 0, cx,
-    														0, fy, cy,
-                                            				0,  0,  1);
+	// cv::Mat_<double> cam_matrix = (cv::Mat_<double>(3, 3)<< fx, 0, cx,
+    // 														0, fy, cy,
+    //                                         				0,  0,  1);
 	
 	// cv::Mat_<double> cam_matrix = (cv::Mat_<double>(3, 3)<< 2759.48, 0, 1520.69,
     // 														0, 2764.16, 1006.81,
     //                                         				0,  0,  1);
 
-	// cv::Mat_<double> cam_matrix = (cv::Mat_<double>(3, 3)<< 1379.74, 0, 760.34,
-    // 														0, 1382.08, 503.40,
-    //                                         				0,  0,  1);
+	cv::Mat_<double> cam_matrix = (cv::Mat_<double>(3, 3)<< 1379.74, 0, 760.34,
+    														0, 1382.08, 503.40,
+                                            				0,  0,  1);
 
 	camMatrix.K = cam_matrix;
 
@@ -230,8 +311,8 @@ void structureFromMotion::getCameraMatrix(const std::string path) {
     double p1 = distCoeffs.at<double>(0,3);
     double p2 = distCoeffs.at<double>(0,4);
 
-    cv::Mat_<double> dist_coeffs = (cv::Mat_<double>(1, 5) << k1, k2, k3, p1, p2);
-	// cv::Mat_<double> dist_coeffs = (cv::Mat_<double>(1, 5) << 0, 0, 0, 0, 0);
+    // cv::Mat_<double> dist_coeffs = (cv::Mat_<double>(1, 5) << k1, k2, k3, p1, p2);
+	cv::Mat_<double> dist_coeffs = (cv::Mat_<double>(1, 5) << 0, 0, 0, 0, 0);
 
 	camMatrix.distCoef = dist_coeffs;
 }
@@ -299,11 +380,7 @@ std::map<float, std::pair<int, int>> structureFromMotion::findBestPair() {
 	for (int i=0; i<numOfImgs-1; i++) {
 		for (int j=i+1; j<numOfImgs; j++) {
 
-			std::vector<cv::DMatch> good_matches;
-
-			featureMatch(BF, imagesDesc[i], imagesDesc[j], good_matches);
-
-			if (good_matches.size() < 100) {
+			if (featureMatchMatrix[i][j].size() < MIN_POINT_CT) {
 				std::cout<<"Not enough matches for pair: "<<i<<", "<<j<<"\n";
 				numInliersMap[1.0] = std::make_pair(i, j);
 				continue;
@@ -312,7 +389,7 @@ std::map<float, std::pair<int, int>> structureFromMotion::findBestPair() {
 			std::vector<cv::Point2d> alignedLeft;
   			std::vector<cv::Point2d> alignedRight;
 
-			alignPointsFromMatches(imagesKps[i], imagesKps[j], good_matches, alignedLeft, alignedRight);
+			alignPointsFromMatches(imagesKps[i], imagesKps[j], featureMatchMatrix[i][j], alignedLeft, alignedRight);
 
 			// cv::Mat cam_matrix = cv::Mat(camMatrix.K);
 			// cv::Mat mask;
@@ -326,9 +403,9 @@ std::map<float, std::pair<int, int>> structureFromMotion::findBestPair() {
         	// }
 			// float inliersRatio = (float)prunedMatches.size() / (float)good_matches.size();
 
-			const int numInliers = findHomographyInliers(alignedLeft, alignedRight, good_matches);
+			const int numInliers = findHomographyInliers(alignedLeft, alignedRight, featureMatchMatrix[i][j]);
 
-			float inliersRatio = (float)numInliers / (float)good_matches.size();
+			float inliersRatio = (float)numInliers / (float)featureMatchMatrix[i][j].size();
 
 			numInliersMap[inliersRatio] = std::make_pair(i, j);
 
@@ -342,7 +419,7 @@ std::map<float, std::pair<int, int>> structureFromMotion::findBestPair() {
 void structureFromMotion::pruneWithE(std::vector<cv::DMatch> matches, std::vector<cv::DMatch> &prunedMatches, cv::Mat mask) {
 	prunedMatches.clear();
 
-	for (unsigned i=0; i<mask.rows; i++) {
+	for (int i=0; i<mask.rows; i++) {
 		if (mask.at<uchar>(i)) {
 			prunedMatches.push_back(matches[i]);
 		}
@@ -407,9 +484,9 @@ void structureFromMotion::triangulateViews(std::vector<cv::KeyPoint> kpQuery, st
 	cv::Mat pts3d;
 	cv::convertPointsFromHomogeneous(pts3dHomogeneous.t(), pts3d);
 
-	std::cout<<pts3d;
+	// std::cout<<pts3d;
 
-	export_to_json("painting2", pts3d);
+	// export_to_json("fountainSURFBF", pts3d);
 
 	for(int i=0; i<pts3d.rows; i++) {
 		Point3D p;
@@ -424,7 +501,6 @@ void structureFromMotion::triangulateViews(std::vector<cv::KeyPoint> kpQuery, st
 		
 		pointcloud.push_back(p);
 	}
-
 }
 
 void structureFromMotion::baseReconstruction() {
@@ -439,29 +515,27 @@ void structureFromMotion::baseReconstruction() {
     	int trainImageIdx = bestPair.second.second;
 		std::cout<<"Base reconstruction with pair: "<<queryImageIdx<<", "<<trainImageIdx<<"\n";
 
-		std::vector<cv::DMatch> good_matches;
-
-		featureMatch(BF, imagesDesc[queryImageIdx], imagesDesc[trainImageIdx], good_matches);
-
 		cv::Matx34d Pleft  = cv::Matx34d::eye();
     	cv::Matx34d Pright = cv::Matx34d::eye();
 
 		std::vector<cv::DMatch> pruned_matches;
 
-		findCameraMatrices(camMatrix, queryImageIdx, trainImageIdx, good_matches, imagesKps[queryImageIdx], imagesKps[trainImageIdx], Pleft, Pright, pruned_matches);
+		findCameraMatrices(camMatrix, queryImageIdx, trainImageIdx, featureMatchMatrix[queryImageIdx][trainImageIdx], imagesKps[queryImageIdx], imagesKps[trainImageIdx], Pleft, Pright, pruned_matches);
 
-		double inliersRatio = (double)pruned_matches.size() / (double)good_matches.size();
+		double inliersRatio = (double)pruned_matches.size() / (double)featureMatchMatrix[queryImageIdx][trainImageIdx].size();
 		// std::cout<<"Inliers ratio: "<<inliersRatio<<"Pruned Matches: "<<pruned_matches.size()<<" Good Matches: "<<good_matches.size()<<"\n";
-		if (inliersRatio < 0.5) {
+		if (inliersRatio < POSE_INLIERS_MINIMAL_RATIO) {
 			std::cout<<"Not enough matches after pruning. Should try another pair...\n";
 			continue;
 		}
 
 		showMatches(queryImageIdx, trainImageIdx, pruned_matches);
 
+		featureMatchMatrix[queryImageIdx][trainImageIdx] = pruned_matches;
+
 		std::vector<Point3D> pointCloud;
 		triangulateViews(imagesKps[queryImageIdx], imagesKps[trainImageIdx], pruned_matches, Pleft, Pright, camMatrix, std::make_pair(queryImageIdx, trainImageIdx), pointCloud);
-		
+
 		reconstructionCloud = pointCloud;
 		
 		cameraPoses[queryImageIdx] = Pleft;
@@ -482,7 +556,7 @@ void structureFromMotion::find2d3dmatches(int newView, std::vector<cv::Point3d> 
 	points2D.clear();
     int queryImageIdx;
 	int trainImageIdx;
-    int bestMatchesNum = 0;
+    size_t bestMatchesNum = 0;
     std::vector<cv::DMatch> bestMatchs;
 
 	for (int view:doneViews) {
@@ -495,13 +569,13 @@ void structureFromMotion::find2d3dmatches(int newView, std::vector<cv::Point3d> 
             trainImageIdx = newView;
         }
 
-		std::vector<cv::DMatch> matches;
-		featureMatch(BF, imagesDesc[queryImageIdx], imagesDesc[trainImageIdx], matches);
+		// std::vector<cv::DMatch> matches;
+		// featureMatch(BF, imagesDesc[queryImageIdx], imagesDesc[trainImageIdx], matches);
 
-		int matchesNum = matches.size();
+		size_t matchesNum = featureMatchMatrix[queryImageIdx][trainImageIdx].size();
 		if (matchesNum > bestMatchesNum) {
 			bestMatchesNum = matchesNum;
-			bestMatches = matches;
+			bestMatches = featureMatchMatrix[queryImageIdx][trainImageIdx];
 			doneView = view;
 		}
 
@@ -641,10 +715,10 @@ void structureFromMotion::addViews() {
 					trainImageIdx = frame;
 				}
 
-				std::vector<cv::DMatch> matches;
-				featureMatch(BF, imagesDesc[queryImageIdx], imagesDesc[trainImageIdx], matches);
+				// std::vector<cv::DMatch> matches;
+				// featureMatch(BF, imagesDesc[queryImageIdx], imagesDesc[trainImageIdx], matches);
 
-				triangulateViews(imagesKps[queryImageIdx], imagesKps[trainImageIdx], matches, cameraPoses[queryImageIdx], cameraPoses[trainImageIdx], camMatrix, std::make_pair(queryImageIdx, trainImageIdx), newPointCloud);
+				triangulateViews(imagesKps[queryImageIdx], imagesKps[trainImageIdx], featureMatchMatrix[queryImageIdx][trainImageIdx], cameraPoses[queryImageIdx], cameraPoses[trainImageIdx], camMatrix, std::make_pair(queryImageIdx, trainImageIdx), newPointCloud);
 			
 				addPoints(newPointCloud);
 			
@@ -658,7 +732,7 @@ void structureFromMotion::addViews() {
 }
 
 void structureFromMotion::export_to_json(std:: string filename, cv::Mat matrix) {
-    cv::FileStorage fs("C:/Programs and Stuff/vr3dmodels/" + filename + ".json", cv::FileStorage::WRITE);
+    cv::FileStorage fs("C:/Programs and Stuff/vr3dmodels/jsonOutput/" + filename + ".json", cv::FileStorage::WRITE);
     fs<<"Matrix"<<matrix;
     fs.release();
 }

@@ -5,12 +5,14 @@ int main() {
 
 	sfm.loadImages();
 
-	sfm.getCameraMatrix("C:/Programs and Stuff/vr3dmodels/calibration/cameraMatrix2.xml");
+	sfm.getCameraMatrix();
 
 	sfm.getFeatures();
 
+	sfm.createFeatureMatchMatrix();
+
 	sfm.baseReconstruction();
 
-	// sfm.addViews();
+	sfm.addViews();
 
 }
