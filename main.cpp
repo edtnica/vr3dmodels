@@ -3,6 +3,8 @@
 int main() {
 	structureFromMotion sfm;
 
+	sfm.setLogging();
+
 	sfm.loadImages();
 
 	sfm.getCameraMatrix();
@@ -13,6 +15,6 @@ int main() {
 
 	sfm.baseReconstruction();
 
-	sfm.addViews();
+	// sfm.addViews();
 
 }

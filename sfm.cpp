@@ -2,7 +2,8 @@
 
 void structureFromMotion::loadImages() {
 
-	std::cout << "Loading images...\n";
+	std::cout<<"Loading images...\n";
+	std::cout<<"----------------------------------------\n";
 	std::vector<cv::String> imagesPaths;
     cv::glob("C:/Programs and Stuff/vr3dmodels/images/fountainLowRes/*.jpg", imagesPaths);
 
@@ -108,6 +109,7 @@ void structureFromMotion::featureDetect(detectorType detectorName, cv::Mat img, 
 
 void structureFromMotion::getFeatures() {
 	std::cout<<"Getting image features...\n";
+	std::cout<<"----------------------------------------\n";
 	// maybe use .insert() for vectors
 	cameraPoses.resize(images.size());
 	imagesKps.resize(images.size(),std::vector<cv::KeyPoint>());
@@ -200,8 +202,8 @@ std::vector<cv::DMatch> structureFromMotion::featureMatch(matcherType matcherNam
 			break;
 		}
 		case BF: {
-			cv::Ptr<cv::DescriptorMatcher> matcher = cv::BFMatcher::create(cv::NORM_HAMMING);
-			// cv::Ptr<cv::DescriptorMatcher> matcher = cv::BFMatcher::create(cv::NORM_L2);
+			// cv::Ptr<cv::DescriptorMatcher> matcher = cv::BFMatcher::create(cv::NORM_HAMMING);
+			cv::Ptr<cv::DescriptorMatcher> matcher = cv::BFMatcher::create(cv::NORM_L2);
 			// std::vector<cv::DMatch> matches;
 			// matcher->match(descriptors_1, descriptors_2, matches);
 
@@ -219,6 +221,7 @@ std::vector<cv::DMatch> structureFromMotion::featureMatch(matcherType matcherNam
 
 void structureFromMotion::createFeatureMatchMatrix() {
 	std::cout<<"Create feature match matrix...\n";
+	std::cout<<"----------------------------------------\n";
 
 	const size_t imagesNum = images.size();
 	featureMatchMatrix.resize(imagesNum, std::vector<std::vector<cv::DMatch>>(imagesNum));
@@ -240,7 +243,9 @@ void structureFromMotion::createFeatureMatchMatrix() {
 	if (threadsNum > imagePairs.size()) pairsPerThread = 1;
 	else pairsPerThread = (int)ceilf((float)(pairsNum)/threadsNum);
 
+	std::cout<<"\n----------------------------------------\n";
 	std::cout<<"Launch "<<threadsNum<<" threads with "<<pairsPerThread<<" pairs per thread\n";
+	std::cout<<"----------------------------------------\n";
 
 	for (int threadId = 0; threadId < MIN(threadsNum, pairsNum); threadId++) {
         threads.push_back(std::thread([&, threadId] {
@@ -275,7 +280,8 @@ void structureFromMotion::convert_to_float(cv::Mat &descriptors) {
 
 // change name to getIntrinsics
 void structureFromMotion::getCameraMatrix() {
-	std::cout << "Getting camera matrix...\n";
+	std::cout<<"Getting camera matrix...\n";
+	std::cout<<"----------------------------------------\n";
 	cv::Mat intrinsics;
 	cv::Mat distCoeffs;
 
@@ -371,7 +377,9 @@ int structureFromMotion::findHomographyInliers(std::vector<cv::Point2d> alignedL
 }
 
 std::map<float, std::pair<int, int>> structureFromMotion::findBestPair() {
+	std::cout<<"\n----------------------------------------\n";
 	std::cout<<"Finding the best pair of images...\n";
+	std::cout<<"----------------------------------------\n";
 
 	std::map<float,std::pair<int,int>> numInliersMap;
 
@@ -486,7 +494,7 @@ void structureFromMotion::triangulateViews(std::vector<cv::KeyPoint> kpQuery, st
 
 	// std::cout<<pts3d;
 
-	// export_to_json("fountainSURFBF", pts3d);
+	// export_to_json("fountainORBBFhighres", pts3d);
 
 	for(int i=0; i<pts3d.rows; i++) {
 		Point3D p;
@@ -568,9 +576,6 @@ void structureFromMotion::find2d3dmatches(int newView, std::vector<cv::Point3d> 
             queryImageIdx = view;
             trainImageIdx = newView;
         }
-
-		// std::vector<cv::DMatch> matches;
-		// featureMatch(BF, imagesDesc[queryImageIdx], imagesDesc[trainImageIdx], matches);
 
 		size_t matchesNum = featureMatchMatrix[queryImageIdx][trainImageIdx].size();
 		if (matchesNum > bestMatchesNum) {
@@ -715,9 +720,6 @@ void structureFromMotion::addViews() {
 					trainImageIdx = frame;
 				}
 
-				// std::vector<cv::DMatch> matches;
-				// featureMatch(BF, imagesDesc[queryImageIdx], imagesDesc[trainImageIdx], matches);
-
 				triangulateViews(imagesKps[queryImageIdx], imagesKps[trainImageIdx], featureMatchMatrix[queryImageIdx][trainImageIdx], cameraPoses[queryImageIdx], cameraPoses[trainImageIdx], camMatrix, std::make_pair(queryImageIdx, trainImageIdx), newPointCloud);
 			
 				addPoints(newPointCloud);
@@ -735,4 +737,8 @@ void structureFromMotion::export_to_json(std:: string filename, cv::Mat matrix) 
     cv::FileStorage fs("C:/Programs and Stuff/vr3dmodels/jsonOutput/" + filename + ".json", cv::FileStorage::WRITE);
     fs<<"Matrix"<<matrix;
     fs.release();
+}
+
+void structureFromMotion::setLogging() {
+	cv::utils::logging::setLogLevel(cv::utils::logging::LogLevel::LOG_LEVEL_SILENT);
 }
