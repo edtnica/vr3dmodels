@@ -41,7 +41,7 @@ struct SimpleReprojectionError {
     double observed_y;
 };
 
-void BundleAdjustment::adjustBundle(std::vector<Point3D>& pointCloud,std::vector<cv::Matx34d>& cameraPoses, Intrinsics& intrinsics, const std::vector<std::vector<cv::Point2d>>& image2dFeatures) {
+void sfmBundleAdjustment::adjustBundle(std::vector<Point3D>& pointCloud,std::vector<cv::Matx34d>& cameraPoses, intrinsics& intrinsics, const std::vector<std::vector<cv::Point2d>>& image2dFeatures) {
 
     // Create residuals for each observation in the bundle adjustment problem. The
     // parameters for cameras and points are added automatically.
@@ -54,7 +54,7 @@ void BundleAdjustment::adjustBundle(std::vector<Point3D>& pointCloud,std::vector
     for(size_t i = 0; i < cameraPoses.size(); i++){
         const cv::Matx34d& pose = cameraPoses[i];
 
-        if(pose(0, 0) == 0 and pose(1, 1) == 0 and pose(2, 2) == 0) {
+        if(pose(0, 0) == 0 && pose(1, 1) == 0 && pose(2, 2) == 0) {
             //This camera pose is empty, it should not be used in the optimization
             cameraPoses6d.push_back(CameraVector());
             continue;
@@ -137,7 +137,7 @@ void BundleAdjustment::adjustBundle(std::vector<Point3D>& pointCloud,std::vector
         cv::Matx34d& pose = cameraPoses[i];
         cv::Matx34d poseBefore = pose;
 
-        if(pose(0, 0) == 0 and pose(1, 1) == 0 and pose(2, 2) == 0) {
+        if(pose(0, 0) == 0 && pose(1, 1) == 0 && pose(2, 2) == 0) {
             //This camera pose is empty, it was not used in the optimization
             continue;
         }

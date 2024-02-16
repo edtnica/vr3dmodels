@@ -1,12 +1,13 @@
 #include <iostream>
 #include <thread>
-#include <opencv2/features2d.hpp>
-#include <opencv2/xfeatures2d.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/calib3d.hpp>
+// #include <opencv2/features2d.hpp>
+// #include <opencv2/xfeatures2d.hpp>
+// #include <opencv2/highgui.hpp>
+// #include <opencv2/calib3d.hpp>
 #include <opencv2/core/utils/logger.hpp>
 #include "cameraCalibration.h"
-#include "utilities.h"
+// #include "utilities.h"
+#include "sfmBundleAdjustment.h"
 
 class structureFromMotion {
     private:

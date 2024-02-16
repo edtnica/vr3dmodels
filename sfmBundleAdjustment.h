@@ -2,19 +2,19 @@
 #include <ceres/rotation.h>
 #include "utilities.h"
 
-class BundleAdjustment {
+class sfmBundleAdjustment {
 
   private:
 
   public:
-    BundleAdjustment(){
+    sfmBundleAdjustment(){
 
     }
 
-    ~BundleAdjustment(){
+    ~sfmBundleAdjustment(){
 
     }
 
-    static void adjustBundle(std::vector<Point3D>& pointCloud, std::vector<cv::Matx34d>& cameraPoses, Intrinsics& intrinsics,const std::vector<std::vector<cv::Point2d>>& image2dFeatures);
+    static void adjustBundle(std::vector<Point3D>& pointCloud, std::vector<cv::Matx34d>& cameraPoses, intrinsics& intrinsics,const std::vector<std::vector<cv::Point2d>>& image2dFeatures);
 
 };

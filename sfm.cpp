@@ -5,7 +5,7 @@ void structureFromMotion::loadImages() {
 	std::cout<<"Loading images...\n";
 	std::cout<<"----------------------------------------\n";
 	std::vector<cv::String> imagesPaths;
-    cv::glob("C:/Programs and Stuff/vr3dmodels/images/fountainLowRes/*.jpg", imagesPaths);
+    cv::glob("/home/csimage/GitRepos/3rdYear/vr3dmodels/images/fountainLowRes/*.jpg", imagesPaths);
 
 	std::sort(imagesPaths.begin(), imagesPaths.end());
 
@@ -286,7 +286,7 @@ void structureFromMotion::getCameraMatrix() {
 	cv::Mat distCoeffs;
 
 	// Read .xml file
-	cv::FileStorage fs("C:/Programs and Stuff/vr3dmodels/calibration/cameraMatrix2.xml", cv::FileStorage::READ);
+	cv::FileStorage fs("/home/csimage/GitRepos/3rdYear/vr3dmodels/calibration/cameraMatrix2.xml", cv::FileStorage::READ);
 
 	// Get data from .xml file with Camera_Matrix tag
 	fs["Camera_Matrix"] >> intrinsics;
@@ -727,14 +727,14 @@ void structureFromMotion::addViews() {
 			}
 
 			goodViews.insert(frame);
-			// adjustBundle();
+			sfmBundleAdjustment::adjustBundle(reconstructionCloud, cameraPoses, camMatrix, imagesPts2D);
 
 		}
 	}
 }
 
 void structureFromMotion::export_to_json(std:: string filename, cv::Mat matrix) {
-    cv::FileStorage fs("C:/Programs and Stuff/vr3dmodels/jsonOutput/" + filename + ".json", cv::FileStorage::WRITE);
+    cv::FileStorage fs("/home/csimage/GitRepos/3rdYear/vr3dmodels/" + filename + ".json", cv::FileStorage::WRITE);
     fs<<"Matrix"<<matrix;
     fs.release();
 }
