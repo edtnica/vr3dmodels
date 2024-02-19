@@ -16,6 +16,7 @@ class structureFromMotion {
         std::vector<std::vector<cv::KeyPoint>> imagesKps;
         std::vector<cv::Mat> imagesDesc;
         std::vector<std::vector<cv::Point2d>> imagesPts2D;
+        std::vector<std::string> imagesPaths;
         std::vector<std::vector<std::vector<cv::DMatch>>> featureMatchMatrix;
         std::vector<cv::Matx34d> cameraPoses;
         std::set<int> doneViews;
@@ -52,6 +53,8 @@ class structureFromMotion {
         void findCameraPosePNP(intrinsics cameraMatrix, std::vector<cv::Point3d> pts3D, std::vector<cv::Point2d> pts2D, cv::Matx34d &P);
         void addPoints(std::vector<Point3D> newPtCloud);
         void addViews();
+        void pointcloud_to_ply(const std::string &filename);
+        void PMVS2()
         void export_to_json(std:: string filename, cv::Mat matrix);
         void setLogging();
 };

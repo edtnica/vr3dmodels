@@ -11,6 +11,7 @@ void structureFromMotion::loadImages() {
 
 	for (auto const &imagePath : imagesPaths) {
 		cv::Mat image = cv::imread(imagePath);
+		imagesPaths.push_back(imagePath);
 
 		if (image.empty()) {
 			std::cerr << "Could not load image " << imagePath << "\n";
@@ -727,10 +728,104 @@ void structureFromMotion::addViews() {
 			}
 
 			goodViews.insert(frame);
+			
 			sfmBundleAdjustment::adjustBundle(reconstructionCloud, cameraPoses, camMatrix, imagesPts2D);
 
 		}
 	}
+}
+
+void structureFromMotion::pointcloud_to_ply(const std::string &filename) {
+	std::cout<<"Saving the pointcloud to file: "<<filename<<"\n";
+
+	ofstream output(filename + ".ply");
+
+	output<<"ply                 \n"<<
+            "format ascii 1.0    \n"<<
+            "element vertex " << reconstructionCloud.size() <<"\n"<<
+            "property float x    \n"<<
+            "property float y    \n"<<
+            "property float z    \n"<<
+            "property uchar red  \n"<<
+            "property uchar green\n"<<
+            "property uchar blue \n"<<
+            "end_header          \n";
+
+	for (Point3D &point:reconstructionCloud) {
+		auto originView = point.idxImage.begin();
+		const int viewIdx = originView.first;
+		Point2f point2d = imagesPts2D[originView.second];
+		Vec3b pointColor = images[viewIdx].at<Vec3b>(point2d);
+
+		output << point.pt.x << " " <<
+        	   	  point.pt.y << " " <<
+			      point.pt.z << " " <<
+			   	  (int)pointColor(2) << " " <<
+			   	  (int)pointColor(1) << " " <<
+			   	  (int)pointColor(0) << " " << endl;
+	}
+
+	output.close();
+
+}
+
+void structureFromMotion::PMVS2(){
+
+  /*FOLDERS FOR PMVS2*/
+  std::cout << "Creating folders for PMVS2..." << std::endl;
+  int dont_care;
+  dont_care = std::system("mkdir -p denseCloud/visualize");
+  dont_care = std::system("mkdir -p denseCloud/txt");
+  dont_care = std::system("mkdir -p denseCloud/models");
+  std::cout << "Created: \nfolder:visualize" << "\n" << "folder:txt" << "\n" << "folder:models\n";
+
+  /*OPTIONS CONFIGURATION FILE FOR PMVS2*/
+  std::cout << "Creating options file for PMVS2...\n";
+  ofstream option("denseCloud/options.txt");
+  option << "minImageNum 5\n";
+  option << "CPU 4\n";
+  option << "timages  -1 " << 0 << " " << (images.size()-1) << "\n";
+  option << "oimages 0\n";
+  option << "level 1\n";
+  option.close();
+  std::cout << "Created: options.txt\n";
+
+  /*CAMERA POSES AND IMAGES INPUT FOR PMVS2*/
+  std::cout << "Saving camera poses for PMVS2...\n";
+  std::cout << "Saving camera images for PMVS2...\n";
+  for(int i=0; i<cameraPoses.size(); i++) {
+
+      /*
+      cv::Matx33f R = pose.get_minor<3, 3>(0, 0);
+      Eigen::Map<Eigen::Matrix3f> R_eigen(R.val);
+      Eigen::Quaternionf q(R_eigen);
+      */
+
+      char str[256];
+      boost::filesystem::directory_entry x(imagesPaths[i]);
+      std::string extension = x.path().extension().string();
+      boost::algorithm::to_lower(extension);
+
+      std::sprintf(str, "cp -f %s denseCloud/visualize/%04d.jpg", imagesPaths[i].c_str(), (int)i);
+      dont_care = std::system(str);
+      cv::imwrite(str, images[i]);
+
+      std::sprintf(str, "denseCloud/txt/%04d.txt", (int)i);
+      ofstream ofs(str);
+      cv::Matx34d pose = cameraPoses[i];
+
+      //K*P
+      pose = (cv::Matx33d)camMatrix.K*pose;
+
+      ofs << "CONTOUR" << std::endl;
+      ofs << pose(0,0) << " " << pose(0,1) << " " << pose(0,2) << " " << pose(0,3) << "\n"
+          << pose(1,0) << " " << pose(1,1) << " " << pose(1,2) << " " << pose(1,3) << "\n"
+          << pose(2,0) << " " << pose(2,1) << " " << pose(2,2) << " " << pose(2,3) << std::endl;
+
+      ofs << std::endl;
+      ofs.close();
+  } 
+  std::cout << "Camera poses saved." << "\n" << "Camera images saved." << std::endl; 
 }
 
 void structureFromMotion::export_to_json(std:: string filename, cv::Mat matrix) {

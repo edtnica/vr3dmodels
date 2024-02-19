@@ -11,7 +11,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 
 find_package(Ceres REQUIRED)
 
-add_executable(vr3dmodels main.cpp sfm.cpp cameraCalibration.cpp)
+add_executable(vr3dmodels main.cpp sfm.cpp cameraCalibration.cpp sfmBundleAdjustment.cpp)
 
 target_link_libraries(vr3dmodels ${OpenCV_LIBS})
 target_link_libraries(vr3dmodels Ceres::ceres)
