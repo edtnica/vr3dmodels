@@ -4,7 +4,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <stdio.h>
 #include <iostream>
-#include "cameraCalibration.h"
+#include "../include/cameraCalibration.h"
 
 void cameraCalibration::export_to_xml(std:: string filename, cv::Mat K, cv::Mat distCoeff) {
     cv::FileStorage fs("C:/Programs and Stuff/vr3dmodels/calibration/" + filename + ".xml", cv::FileStorage::WRITE);

@@ -1,4 +1,4 @@
-#include "sfmBundleAdjustment.h"
+#include "../include/sfmBundleAdjustment.h"
 
 struct SimpleReprojectionError {
     SimpleReprojectionError(double observed_x, double observed_y) :

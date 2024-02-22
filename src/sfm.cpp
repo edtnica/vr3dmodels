@@ -1,20 +1,20 @@
-#include "sfm.h"
+#include "../include/sfm.h"
 
 void structureFromMotion::loadImages() {
 
 	std::cout<<"Loading images...\n";
 	std::cout<<"----------------------------------------\n";
-	std::vector<cv::String> imagesPaths;
-    cv::glob("/home/csimage/GitRepos/3rdYear/vr3dmodels/images/fountainLowRes/*.jpg", imagesPaths);
+	std::vector<cv::String> imgPaths;
+    cv::glob("/home/csimage/GitRepos/3rdYear/vr3dmodels/images/fountain/*.jpg", imgPaths);
 
-	std::sort(imagesPaths.begin(), imagesPaths.end());
+	std::sort(imgPaths.begin(), imgPaths.end());
 
-	for (auto const &imagePath : imagesPaths) {
-		cv::Mat image = cv::imread(imagePath);
-		imagesPaths.push_back(imagePath);
+	for (auto const &imgPath : imgPaths) {
+		std::cout<<imgPath<<"\n";
+		cv::Mat image = cv::imread(imgPath);
 
 		if (image.empty()) {
-			std::cerr << "Could not load image " << imagePath << "\n";
+			std::cerr << "Could not load image " << imgPath << "\n";
 			continue;
 		}
 
@@ -30,6 +30,7 @@ void structureFromMotion::loadImages() {
 		// }
 		// images.push_back(image_copy);
 		images.push_back(image);
+		imagesPaths.push_back(imgPath);
 	}
 
 	if (images.size() < 2) {
@@ -302,13 +303,13 @@ void structureFromMotion::getCameraMatrix() {
     // 														0, fy, cy,
     //                                         				0,  0,  1);
 	
-	// cv::Mat_<double> cam_matrix = (cv::Mat_<double>(3, 3)<< 2759.48, 0, 1520.69,
-    // 														0, 2764.16, 1006.81,
-    //                                         				0,  0,  1);
-
-	cv::Mat_<double> cam_matrix = (cv::Mat_<double>(3, 3)<< 1379.74, 0, 760.34,
-    														0, 1382.08, 503.40,
+	cv::Mat_<double> cam_matrix = (cv::Mat_<double>(3, 3)<< 2759.48, 0, 1520.69,
+    														0, 2764.16, 1006.81,
                                             				0,  0,  1);
+
+	// cv::Mat_<double> cam_matrix = (cv::Mat_<double>(3, 3)<< 1379.74, 0, 760.34,
+    // 														0, 1382.08, 503.40,
+    //                                         				0,  0,  1);
 
 	camMatrix.K = cam_matrix;
 
@@ -558,6 +559,7 @@ void structureFromMotion::baseReconstruction() {
 
 		break;
 	}
+	sfmBundleAdjustment::adjustBundle(reconstructionCloud, cameraPoses, camMatrix, imagesPts2D);
 }
 
 void structureFromMotion::find2d3dmatches(int newView, std::vector<cv::Point3d> &points3D, std::vector<cv::Point2d> &points2D, std::vector<cv::DMatch> &bestMatches, int &doneView) {
@@ -738,31 +740,31 @@ void structureFromMotion::addViews() {
 void structureFromMotion::pointcloud_to_ply(const std::string &filename) {
 	std::cout<<"Saving the pointcloud to file: "<<filename<<"\n";
 
-	ofstream output(filename + ".ply");
+	std::ofstream output(filename + ".ply");
 
-	output<<"ply                 \n"<<
-            "format ascii 1.0    \n"<<
-            "element vertex " << reconstructionCloud.size() <<"\n"<<
-            "property float x    \n"<<
-            "property float y    \n"<<
-            "property float z    \n"<<
-            "property uchar red  \n"<<
+	output<<"ply\n"<<
+            "format ascii 1.0\n"<<
+            "element vertex" << reconstructionCloud.size() <<"\n"<<
+            "property float x\n"<<
+            "property float y\n"<<
+            "property float z\n"<<
+            "property uchar red\n"<<
             "property uchar green\n"<<
-            "property uchar blue \n"<<
-            "end_header          \n";
+            "property uchar blue\n"<<
+            "end_header\n";
 
 	for (Point3D &point:reconstructionCloud) {
 		auto originView = point.idxImage.begin();
-		const int viewIdx = originView.first;
-		Point2f point2d = imagesPts2D[originView.second];
-		Vec3b pointColor = images[viewIdx].at<Vec3b>(point2d);
+		const int viewIdx = originView->first;
+		cv::Point2d point2d = imagesPts2D[viewIdx][originView->second];
+		cv::Vec3b pointColor = images[viewIdx].at<cv::Vec3b>(point2d);
 
 		output << point.pt.x << " " <<
         	   	  point.pt.y << " " <<
 			      point.pt.z << " " <<
 			   	  (int)pointColor(2) << " " <<
 			   	  (int)pointColor(1) << " " <<
-			   	  (int)pointColor(0) << " " << endl;
+			   	  (int)pointColor(0) << "\n";
 	}
 
 	output.close();
@@ -781,7 +783,7 @@ void structureFromMotion::PMVS2(){
 
   /*OPTIONS CONFIGURATION FILE FOR PMVS2*/
   std::cout << "Creating options file for PMVS2...\n";
-  ofstream option("denseCloud/options.txt");
+  std::ofstream option("denseCloud/options.txt");
   option << "minImageNum 5\n";
   option << "CPU 4\n";
   option << "timages  -1 " << 0 << " " << (images.size()-1) << "\n";
@@ -811,7 +813,7 @@ void structureFromMotion::PMVS2(){
       cv::imwrite(str, images[i]);
 
       std::sprintf(str, "denseCloud/txt/%04d.txt", (int)i);
-      ofstream ofs(str);
+      std::ofstream ofs(str);
       cv::Matx34d pose = cameraPoses[i];
 
       //K*P

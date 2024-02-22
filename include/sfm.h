@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <thread>
 // #include <opencv2/features2d.hpp>
 // #include <opencv2/xfeatures2d.hpp>
@@ -8,6 +9,9 @@
 #include "cameraCalibration.h"
 // #include "utilities.h"
 #include "sfmBundleAdjustment.h"
+
+#include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 
 class structureFromMotion {
     private:
@@ -54,7 +58,7 @@ class structureFromMotion {
         void addPoints(std::vector<Point3D> newPtCloud);
         void addViews();
         void pointcloud_to_ply(const std::string &filename);
-        void PMVS2()
+        void PMVS2();
         void export_to_json(std:: string filename, cv::Mat matrix);
         void setLogging();
 };

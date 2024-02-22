@@ -1,4 +1,4 @@
-#include "sfm.h"
+#include "../include/sfm.h"
 
 int main() {
 	structureFromMotion sfm;
@@ -15,6 +15,8 @@ int main() {
 
 	sfm.baseReconstruction();
 
-	// sfm.addViews();
+	sfm.addViews();
+
+	sfm.pointcloud_to_ply("fountain1");
 
 }
