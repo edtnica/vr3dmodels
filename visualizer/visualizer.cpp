@@ -19,7 +19,7 @@ int main() {
     // Create a PointCloud<PointXYZ> pointer and load the .ply file into it
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
 
-    if (pcl::io::loadPLYFile<pcl::PointXYZ>("/home/csimage/GitRepos/3rdYear/vr3dmodels/fountain1.ply", *cloud) == -1) {
+    if (pcl::io::loadPLYFile<pcl::PointXYZ>("/home/csimage/GitRepos/3rdYear/vr3dmodels/fountain6.ply", *cloud) == -1) {
         PCL_ERROR("Couldn't read file .ply \n");
         return -1;
     }
