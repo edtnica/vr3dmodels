@@ -14,6 +14,8 @@
 #include <boost/filesystem.hpp>
 
 class structureFromMotion {
+    typedef std::map<int, image2D3DPair> image2D3DMatches;
+
     private:
         std::vector<cv::Mat> images;
         intrinsics camMatrix;
@@ -53,8 +55,9 @@ class structureFromMotion {
         void findCameraMatrices(intrinsics intrinsics, const int queryImageIdx, const int trainImageIdx, std::vector<cv::DMatch> matches, std::vector<cv::KeyPoint> kpLeft, std::vector<cv::KeyPoint> kpRight, cv::Matx34d& Pleft, cv::Matx34d& Pright, std::vector<cv::DMatch> &prunedMatches);
         void triangulateViews(std::vector<cv::KeyPoint> kpQuery, std::vector<cv::KeyPoint> kpTrain, std::vector<cv::DMatch> matches, cv::Matx34d P1, cv::Matx34d P2, intrinsics cameraMatrix, std::pair<int, int> imgIdxPair, std::vector<Point3D> &pointcloud);
         void baseReconstruction();
-        void find2d3dmatches(int newView, std::vector<cv::Point3d> &points3D, std::vector<cv::Point2d> &points2D, std::vector<cv::DMatch> &bestMatches, int &doneView);
-        void findCameraPosePNP(intrinsics cameraMatrix, std::vector<cv::Point3d> pts3D, std::vector<cv::Point2d> pts2D, cv::Matx34d &P);
+        // void find2d3dmatches(int newView, std::vector<cv::Point3d> &points3D, std::vector<cv::Point2d> &points2D, int &doneView);
+        image2D3DMatches find2d3dmatches();
+        bool findCameraPosePNP(intrinsics cameraMatrix, std::vector<cv::Point3d> pts3D, std::vector<cv::Point2d> pts2D, cv::Matx34d &P);
         void addPoints(std::vector<Point3D> newPtCloud);
         void addViews();
         void pointcloud_to_ply(const std::string &filename);

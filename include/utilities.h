@@ -22,6 +22,11 @@ struct intrinsics {
 	cv::Mat_<double> distCoef;
 };
 
+struct image2D3DPair {
+  std::vector<cv::Point2d> pts2D;
+  std::vector<cv::Point3d> pts3D;
+};
+
 struct Point3D {
     cv::Point3d pt;
     std::map<const int,int> idxImage;
