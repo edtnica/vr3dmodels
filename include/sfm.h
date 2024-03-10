@@ -60,6 +60,7 @@ class structureFromMotion {
         bool findCameraPosePNP(intrinsics cameraMatrix, std::vector<cv::Point3d> pts3D, std::vector<cv::Point2d> pts2D, cv::Matx34d &P);
         void addPoints(std::vector<Point3D> newPtCloud);
         void addViews();
+        void run_reconstruction();
         void pointcloud_to_ply(const std::string &filename);
         void PMVS2();
         void export_to_json(std:: string filename, cv::Mat matrix);

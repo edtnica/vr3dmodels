@@ -3,20 +3,12 @@
 int main() {
 	structureFromMotion sfm;
 
-	sfm.setLogging();
+	sfm.run_reconstruction();
 
-	sfm.loadImages();
+	// sfm.pointcloud_to_ply("fountainfinal");
+	
+	// sfm.PMVS2();
 
-	sfm.getCameraMatrix();
-
-	sfm.getFeatures();
-
-	sfm.createFeatureMatchMatrix();
-
-	sfm.baseReconstruction();
-
-	sfm.addViews();
-
-	sfm.pointcloud_to_ply("fountain1");
+	// bool dense_reconstruction_success = std::system("/home/csimage/GitRepos/3rdYear/vr3dmodels/pmvs2 denseCloud/ options.txt");
 
 }

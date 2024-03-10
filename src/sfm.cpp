@@ -2,8 +2,9 @@
 
 void structureFromMotion::loadImages() {
 
-	std::cout<<"Loading images...\n";
-	std::cout<<"----------------------------------------\n";
+	std::cout<<"--------------------------------------------------\n";
+	std::cout<<"               Loading images...\n";
+	std::cout<<"--------------------------------------------------\n";
 	std::vector<cv::String> imgPaths;
     cv::glob("/home/csimage/GitRepos/3rdYear/vr3dmodels/images/fountain/*.jpg", imgPaths);
 
@@ -110,8 +111,9 @@ void structureFromMotion::featureDetect(detectorType detectorName, cv::Mat img, 
 }
 
 void structureFromMotion::getFeatures() {
-	std::cout<<"Getting image features...\n";
-	std::cout<<"----------------------------------------\n";
+	std::cout<<"--------------------------------------------------\n";
+	std::cout<<"           Getting image features...\n";
+	std::cout<<"--------------------------------------------------\n";
 	// maybe use .insert() for vectors
 	cameraPoses.resize(images.size());
 	imagesKps.resize(images.size(),std::vector<cv::KeyPoint>());
@@ -222,8 +224,9 @@ std::vector<cv::DMatch> structureFromMotion::featureMatch(matcherType matcherNam
 }
 
 void structureFromMotion::createFeatureMatchMatrix() {
-	std::cout<<"Create feature match matrix...\n";
-	std::cout<<"----------------------------------------\n";
+	std::cout<<"--------------------------------------------------\n";
+	std::cout<<"           Create the match matrix...\n";
+	std::cout<<"--------------------------------------------------\n\n";
 
 	const size_t imagesNum = images.size();
 	featureMatchMatrix.resize(imagesNum, std::vector<std::vector<cv::DMatch>>(imagesNum));
@@ -245,9 +248,7 @@ void structureFromMotion::createFeatureMatchMatrix() {
 	if (threadsNum > imagePairs.size()) pairsPerThread = 1;
 	else pairsPerThread = (int)ceilf((float)(pairsNum)/threadsNum);
 
-	std::cout<<"\n----------------------------------------\n";
 	std::cout<<"Launch "<<threadsNum<<" threads with "<<pairsPerThread<<" pairs per thread\n";
-	std::cout<<"----------------------------------------\n";
 
 	for (int threadId = 0; threadId < MIN(threadsNum, pairsNum); threadId++) {
         threads.push_back(std::thread([&, threadId] {
@@ -282,8 +283,9 @@ void structureFromMotion::convert_to_float(cv::Mat &descriptors) {
 
 // change name to getIntrinsics
 void structureFromMotion::getCameraMatrix() {
-	std::cout<<"Getting camera matrix...\n";
-	std::cout<<"----------------------------------------\n";
+	std::cout<<"--------------------------------------------------\n";
+	std::cout<<"            Getting camera matrix...\n";
+	std::cout<<"--------------------------------------------------\n";
 	cv::Mat intrinsics;
 	cv::Mat distCoeffs;
 
@@ -379,9 +381,7 @@ int structureFromMotion::findHomographyInliers(std::vector<cv::Point2d> alignedL
 }
 
 std::map<float, std::pair<int, int>> structureFromMotion::findBestPair() {
-	std::cout<<"\n----------------------------------------\n";
 	std::cout<<"Finding the best pair of images...\n";
-	std::cout<<"----------------------------------------\n";
 
 	std::map<float,std::pair<int,int>> numInliersMap;
 
@@ -496,9 +496,7 @@ void structureFromMotion::triangulateViews(std::vector<cv::KeyPoint> kpQuery, st
 
 	// std::cout<<pts3d;
 
-	export_to_json("fountain_ORB_BF", pts3d);
-
-
+	// export_to_json("fountain_ORB_BF", pts3d);
 
 	cv::Mat rvecLeft;
     cv::Rodrigues(P1.get_minor<3, 3>(0, 0), rvecLeft);
@@ -514,12 +512,10 @@ void structureFromMotion::triangulateViews(std::vector<cv::KeyPoint> kpQuery, st
     std::vector<cv::Point2d> projectedOnRight(alignedRight.size());
     cv::projectPoints(pts3d, rvecRight, tvecRight, cameraMatrix.K, cv::Mat(), projectedOnRight);
 
-
 	for(int i=0; i<pts3d.rows; i++) {
 		if (cv::norm(projectedOnLeft[i]  - alignedLeft[i])  > 5 && cv::norm(projectedOnRight[i] - alignedRight[i]) > 5) {
             continue;
         }
-
 
 		Point3D p;
         p.pt = cv::Point3d(pts3d.at<double>(i, 0),
@@ -536,6 +532,10 @@ void structureFromMotion::triangulateViews(std::vector<cv::KeyPoint> kpQuery, st
 }
 
 void structureFromMotion::baseReconstruction() {
+	std::cout << "\n--------------------------------------------------\n";
+	std::cout << "          Starting base reconstruction...\n";
+	std::cout << "--------------------------------------------------\n\n";
+
 	std::map<float, std::pair<int, int>> bestViews = findBestPair();
 
 	if (bestViews.size() <= 0) {
@@ -783,6 +783,22 @@ void structureFromMotion::baseReconstruction() {
 // 		continue;
 // 	}
 // }
+
+void structureFromMotion::run_reconstruction() {
+	setLogging();
+
+	loadImages();
+
+	getCameraMatrix();
+
+	getFeatures();
+
+	createFeatureMatchMatrix();
+
+	baseReconstruction();
+
+	// addViews();
+}
 
 void structureFromMotion::pointcloud_to_ply(const std::string &filename) {
 	std::cout<<"Saving the pointcloud to file: "<<filename<<"\n";
