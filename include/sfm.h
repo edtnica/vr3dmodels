@@ -1,11 +1,13 @@
 #include <iostream>
 #include <fstream>
 #include <thread>
+#include <filesystem>
 // #include <opencv2/features2d.hpp>
 // #include <opencv2/xfeatures2d.hpp>
 // #include <opencv2/highgui.hpp>
 // #include <opencv2/calib3d.hpp>
 #include <opencv2/core/utils/logger.hpp>
+#include "ioUtils.h"
 #include "cameraCalibration.h"
 // #include "utilities.h"
 #include "sfmBundleAdjustment.h"
@@ -17,6 +19,7 @@ class structureFromMotion {
     typedef std::map<int, image2D3DPair> image2D3DMatches;
 
     private:
+		std::string reconstructionName;
         std::vector<cv::Mat> images;
         intrinsics camMatrix;
         std::vector<std::vector<cv::KeyPoint>> imagesKps;
@@ -30,9 +33,12 @@ class structureFromMotion {
 
         int MIN_POINT_CT = 100;
         float POSE_INLIERS_MINIMAL_RATIO = 0.5;
+		
     public:
         std::vector<Point3D> reconstructionCloud;
 
+		structureFromMotion(std::string reconstructionName);
+		
         void loadImages();
         void showFeatures(cv::Mat img, std::vector<cv::KeyPoint> kps);
         void showMatches(int rightIdx, int leftIdx, std::vector<cv::DMatch> matches);
@@ -60,8 +66,9 @@ class structureFromMotion {
         bool findCameraPosePNP(intrinsics cameraMatrix, std::vector<cv::Point3d> pts3D, std::vector<cv::Point2d> pts2D, cv::Matx34d &P);
         void addPoints(std::vector<Point3D> newPtCloud);
         void addViews();
-        void run_reconstruction();
+		void run_reconstruction();
         void pointcloud_to_ply(const std::string &filename);
+		// void ply_to_pcd(std::string plyFilePath, std::string pcdFilePath);
         void PMVS2();
         void export_to_json(std:: string filename, cv::Mat matrix);
         void setLogging();

@@ -1,5 +1,6 @@
 file(REMOVE_RECURSE
   "CMakeFiles/visualizer.dir/visualizer.cpp.o"
+  "CMakeFiles/visualizer.dir/visualizer.cpp.o.d"
   "visualizer"
   "visualizer.pdb"
 )

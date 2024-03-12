@@ -1,12 +1,16 @@
 #include "../include/sfm.h"
 
+structureFromMotion::structureFromMotion(std::string reconstructionName) {
+	this->reconstructionName = reconstructionName;
+}
+
 void structureFromMotion::loadImages() {
 
 	std::cout<<"--------------------------------------------------\n";
 	std::cout<<"               Loading images...\n";
 	std::cout<<"--------------------------------------------------\n";
 	std::vector<cv::String> imgPaths;
-    cv::glob("/home/csimage/GitRepos/3rdYear/vr3dmodels/images/fountain/*.jpg", imgPaths);
+    cv::glob("../images/fountain/*.jpg", imgPaths);
 
 	std::sort(imgPaths.begin(), imgPaths.end());
 
@@ -290,7 +294,7 @@ void structureFromMotion::getCameraMatrix() {
 	cv::Mat distCoeffs;
 
 	// Read .xml file
-	cv::FileStorage fs("/home/csimage/GitRepos/3rdYear/vr3dmodels/calibration/cameraMatrix2.xml", cv::FileStorage::READ);
+	cv::FileStorage fs("../calibration/cameraMatrix2.xml", cv::FileStorage::READ);
 
 	// Get data from .xml file with Camera_Matrix tag
 	fs["Camera_Matrix"] >> intrinsics;
@@ -498,6 +502,8 @@ void structureFromMotion::triangulateViews(std::vector<cv::KeyPoint> kpQuery, st
 
 	// export_to_json("fountain_ORB_BF", pts3d);
 
+
+
 	cv::Mat rvecLeft;
     cv::Rodrigues(P1.get_minor<3, 3>(0, 0), rvecLeft);
     cv::Mat tvecLeft(P1.get_minor<3, 1>(0, 3).t());
@@ -512,10 +518,12 @@ void structureFromMotion::triangulateViews(std::vector<cv::KeyPoint> kpQuery, st
     std::vector<cv::Point2d> projectedOnRight(alignedRight.size());
     cv::projectPoints(pts3d, rvecRight, tvecRight, cameraMatrix.K, cv::Mat(), projectedOnRight);
 
-	for(int i=0; i<pts3d.rows; i++) {
+
+	for (int i=0; i<pts3d.rows; i++) {
 		if (cv::norm(projectedOnLeft[i]  - alignedLeft[i])  > 5 && cv::norm(projectedOnRight[i] - alignedRight[i]) > 5) {
             continue;
         }
+
 
 		Point3D p;
         p.pt = cv::Point3d(pts3d.at<double>(i, 0),
@@ -535,7 +543,7 @@ void structureFromMotion::baseReconstruction() {
 	std::cout << "\n--------------------------------------------------\n";
 	std::cout << "          Starting base reconstruction...\n";
 	std::cout << "--------------------------------------------------\n\n";
-
+	
 	std::map<float, std::pair<int, int>> bestViews = findBestPair();
 
 	if (bestViews.size() <= 0) {
@@ -582,6 +590,7 @@ void structureFromMotion::baseReconstruction() {
 		break;
 	}
 	sfmBundleAdjustment::adjustBundle(reconstructionCloud, cameraPoses, camMatrix, imagesPts2D);
+	pointcloud_to_ply("../reconstructions/" + reconstructionName + "/base/baseReconstruction");
 }
 
 // void structureFromMotion::find2d3dmatches(int newView, std::vector<cv::Point3d> &points3D, std::vector<cv::Point2d> &points2D, int &doneView) {
@@ -785,23 +794,31 @@ void structureFromMotion::baseReconstruction() {
 // }
 
 void structureFromMotion::run_reconstruction() {
+	std::filesystem::create_directories("../reconstructions/" + reconstructionName);
+	std::filesystem::create_directories("../reconstructions/" + reconstructionName + "/base");
+    std::filesystem::create_directories("../reconstructions/" + reconstructionName + "/sparse");
+    std::filesystem::create_directories("../reconstructions/" + reconstructionName + "/dense");
+    std::filesystem::create_directories("../reconstructions/" + reconstructionName + "/mesh");
+	
+	
 	setLogging();
 
 	loadImages();
-
+	
 	getCameraMatrix();
 
 	getFeatures();
 
 	createFeatureMatchMatrix();
-
+	
 	baseReconstruction();
 
-	// addViews();
+	addViews();
+
 }
 
 void structureFromMotion::pointcloud_to_ply(const std::string &filename) {
-	std::cout<<"Saving the pointcloud to file: "<<filename<<"\n";
+	std::cout<<"Saving the pointcloud to file: "<<filename<<".ply\n";
 
 	std::ofstream output(filename + ".ply");
 
@@ -1057,9 +1074,9 @@ void structureFromMotion::addPoints(std::vector<Point3D> newPtCloud) {
 }
 
 void structureFromMotion::addViews() {
-	std::cout << "\n----------------------------------------\n";
-	std::cout << "Adding more views..\n";
-	std::cout << "\n----------------------------------------\n";
+	std::cout << "\n--------------------------------------------------\n";
+	std::cout << "                 Adding more views...\n";
+	std::cout << "--------------------------------------------------\n\n";
 
 	while (doneViews.size() != images.size()) {
 		image2D3DMatches matches2D3D = find2d3dmatches();

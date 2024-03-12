@@ -3,7 +3,7 @@ project(vr3dmodels VERSION 0.1.0 LANGUAGES C CXX)
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 
-set(OpenCV_DIR "/home/csimage/OpenCV/build")
+set(OpenCV_DIR "/home/neduardt/opencv/build")
 find_package(OpenCV REQUIRED)
 
 # link_directories(${OpenCV_LIB_DIR})
@@ -21,7 +21,9 @@ add_executable(
     ./src/main.cpp
     ./src/sfm.cpp
     ./src/sfmBundleAdjustment.cpp
-    ./src/cameraCalibration.cpp)
+	./src/ioUtils.cpp
+    ./src/cameraCalibration.cpp
+	./src/mesh.cpp)
 
 target_link_libraries(vr3dmodels
     ${OpenCV_LIBS}
