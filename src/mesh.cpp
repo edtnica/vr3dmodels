@@ -36,11 +36,11 @@ void Mesh::create_mesh(std::string input_file, std::string output_file) {
 	
 	
 	pcl::NormalEstimationOMP<pcl::PointXYZ, pcl::Normal> ne;
-	ne.setNumberOfThreads (8);
-	ne.setInputCloud (cloud);
+	ne.setNumberOfThreads(8);
+	ne.setInputCloud(cloud);
 	pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ> ());
-	ne.setSearchMethod (tree);
-	ne.setKSearch (10); //20
+	ne.setSearchMethod(tree);
+	ne.setKSearch(10); //20
 	pcl::PointCloud<pcl::Normal>::Ptr cloud_normals (new pcl::PointCloud<pcl::Normal>());
 	ne.compute(*cloud_normals);
 
@@ -54,8 +54,8 @@ void Mesh::create_mesh(std::string input_file, std::string output_file) {
 
 	pcl::Poisson<pcl::PointNormal> poisson;
 
-	poisson.setDepth (7);//9
-	poisson.setInputCloud (cloud_smoothed_normals);
+	poisson.setDepth(7);//9
+	poisson.setInputCloud(cloud_smoothed_normals);
 	poisson.setPointWeight(4);//4
 	poisson.setSamplesPerNode(1.5);//1.5
 	poisson.setScale(1.1);//1.1
@@ -65,7 +65,33 @@ void Mesh::create_mesh(std::string input_file, std::string output_file) {
 	poisson.setOutputPolygons(0);
 	poisson.setSolverDivide(8);//8
 	poisson.reconstruct(mesh);
+	
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloudRGB(new pcl::PointCloud<pcl::PointXYZRGB>());
+    pcl::io::loadPCDFile(input_file, *cloudRGB);
+	pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
+    kdtree.setInputCloud(cloudRGB);
 
+    // Prepare a PointCloud with the same structure as the mesh vertices but to store RGB information
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr mesh_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::fromPCLPointCloud2(mesh.cloud, *mesh_cloud);
+
+    // For each vertex in the mesh, find the nearest neighbor in the original cloud and assign its color
+    for (size_t i = 0; i < mesh_cloud->points.size(); ++i) {
+        pcl::PointXYZRGB& mesh_point = mesh_cloud->points[i];
+        std::vector<int> pointIdxNKNSearch(1);
+        std::vector<float> pointNKNSquaredDistance(1);
+
+        // Find the nearest neighbor
+        if (kdtree.nearestKSearch(mesh_point, 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0) {
+            // Assign the color from the nearest neighbor
+            const pcl::PointXYZRGB& nearest_point = cloudRGB->points[pointIdxNKNSearch[0]];
+            mesh_point.r = nearest_point.r;
+            mesh_point.g = nearest_point.g;
+            mesh_point.b = nearest_point.b;
+        }
+	}
+
+	pcl::toPCLPointCloud2(*mesh_cloud, mesh.cloud);
 	//saveMeshToPLY(mesh, output_file);
 
 	pcl::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
