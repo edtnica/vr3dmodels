@@ -9,7 +9,6 @@
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/surface/poisson.h>
 #include <pcl/common/common.h>
-// #include <pcl/PolygonMesh.h>
 
 class Mesh {
 	

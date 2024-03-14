@@ -1,0 +1,5 @@
+/home/neduardt/GitHub/vr3dmodels/build/CMakeFiles/vr3dmodels.dir
+/home/neduardt/GitHub/vr3dmodels/build/CMakeFiles/package.dir
+/home/neduardt/GitHub/vr3dmodels/build/CMakeFiles/package_source.dir
+/home/neduardt/GitHub/vr3dmodels/build/CMakeFiles/edit_cache.dir
+/home/neduardt/GitHub/vr3dmodels/build/CMakeFiles/rebuild_cache.dir

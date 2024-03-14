@@ -1,3 +1,5 @@
+// https://github.com/danielTobon43/sfM_danPipeline/blob/master/src/BundleAdjustment.cpp
+
 #include "../include/sfmBundleAdjustment.h"
 
 struct SimpleReprojectionError {

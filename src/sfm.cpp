@@ -107,7 +107,7 @@ void structureFromMotion::getFeatures() {
 	std::cout<<"--------------------------------------------------\n";
 	std::cout<<"           Getting image features...\n";
 	std::cout<<"--------------------------------------------------\n";
-	// maybe use .insert() for vectors
+
 	cameraPoses.resize(images.size());
 	imagesKps.resize(images.size(),std::vector<cv::KeyPoint>());
   	imagesDesc.resize(images.size(),cv::Mat());
@@ -269,10 +269,6 @@ void structureFromMotion::getIntrinsics() {
 	cv::Mat_<double> cam_matrix = (cv::Mat_<double>(3, 3)<< 2759.48, 0, 1520.69,
     														0, 2764.16, 1006.81,
                                             				0,  0,  1);
-
-	// cv::Mat_<double> cam_matrix = (cv::Mat_<double>(3, 3)<< 1379.74, 0, 760.34,
-    // 														0, 1382.08, 503.40,
-    //                                         				0,  0,  1);
 
 	camMatrix.K = cam_matrix;
 
@@ -451,8 +447,6 @@ void structureFromMotion::triangulateViews(std::vector<cv::KeyPoint> kpQuery, st
 
 	cv::Mat pts3d;
 	cv::convertPointsFromHomogeneous(pts3dHomogeneous.t(), pts3d);
-
-	// std::cout<<pts3d;
 
 	// export_to_json("fountain_ORB_BF", pts3d);
 
@@ -648,7 +642,6 @@ void structureFromMotion::addPoints(std::vector<Point3D> newPtCloud) {
     size_t mergedPoints = 0;
 
     for (const Point3D &p : newPtCloud) {
-        // const cv::Point3f newPoint = p.pt;
 		const cv::Point3d newPoint = p.pt;
 
         bool foundAnyMatchingExistingViews = false;
@@ -657,16 +650,16 @@ void structureFromMotion::addPoints(std::vector<Point3D> newPtCloud) {
             if (cv::norm(existingPoint.pt - newPoint) < 0.01) {
                 foundMatching3DPoint = true;
 
-                for (const auto& newKv : p.idxImage) {
-                    for (const auto& existingKv : existingPoint.idxImage) {
+                for (const auto& newView : p.idxImage) {
+                    for (const auto& existingView : existingPoint.idxImage) {
 
                         bool foundMatchingFeature = false;
 
-						const bool newIsLeft = newKv.first < existingKv.first;
-						const int leftViewIdx         = (newIsLeft) ? newKv.first  : existingKv.first;
-                        const int leftViewFeatureIdx  = (newIsLeft) ? newKv.second : existingKv.second;
-                        const int rightViewIdx        = (newIsLeft) ? existingKv.first  : newKv.first;
-                        const int rightViewFeatureIdx = (newIsLeft) ? existingKv.second : newKv.second;
+						const bool newIsLeft = newView.first < existingView.first;
+						const int leftViewIdx         = (newIsLeft) ? newView.first  : existingView.first;
+                        const int leftViewFeatureIdx  = (newIsLeft) ? newView.second : existingView.second;
+                        const int rightViewIdx        = (newIsLeft) ? existingView.first  : newView.first;
+                        const int rightViewFeatureIdx = (newIsLeft) ? existingView.second : newView.second;
 
                         const std::vector<cv::DMatch> &matching = featureMatchMatrix[leftViewIdx][rightViewIdx];
                         for (const cv::DMatch &match : matching) {
@@ -678,7 +671,7 @@ void structureFromMotion::addPoints(std::vector<Point3D> newPtCloud) {
                         }
 
                         if (foundMatchingFeature) {
-                            existingPoint.idxImage[newKv.first] = newKv.second;
+                            existingPoint.idxImage[newView.first] = newView.second;
                             foundAnyMatchingExistingViews = true;
 
                         }
