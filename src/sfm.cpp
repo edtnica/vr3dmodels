@@ -23,17 +23,6 @@ void structureFromMotion::loadImages() {
 			continue;
 		}
 
-		// cv::Mat image_copy = image.clone();
-		// cv::Mat resize;
-
-		// if (image_copy.rows > 480 && image_copy.cols > 640) {
-		// 	cv::resize(image_copy,resize,cv::Size(),0.60,0.60); //Define a size of 640x480
-		// 	images.push_back(resize);
-		// }
-		// else {
-		// 	images.push_back(image_copy);
-		// }
-		// images.push_back(image_copy);
 		images.push_back(image);
 		imagesPaths.push_back(imgPath);
 	}
@@ -154,7 +143,7 @@ std::vector<cv::DMatch> structureFromMotion::pruneMatchesWithLowe(std::vector<st
 	std::vector<cv::DMatch> good_matches;
 	// const float ratio_thresh = 0.7f;
 	// const float ratio_thresh = 0.8f;
-	const float ratio_thresh = 0.75;
+	const float ratio_thresh = 0.7;
 	for (size_t i = 0; i < knnMatches.size(); i++) {
 		if (knnMatches[i][0].distance <= ratio_thresh * knnMatches[i][1].distance) {
 			good_matches.push_back(knnMatches[i][0]);
@@ -162,38 +151,6 @@ std::vector<cv::DMatch> structureFromMotion::pruneMatchesWithLowe(std::vector<st
 	}
 	return good_matches;
 }
-
-// void structureFromMotion::featureMatch(matcherType matcherName, cv::Mat &descriptors_1, cv::Mat &descriptors_2, std::vector<cv::DMatch> &good_matches) {
-// 	switch (matcherName) {
-// 		case FLANN: {
-// 			cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::FLANNBASED);
-// 			std::vector<std::vector<cv::DMatch>> knn_matches;
-			
-// 			matcher->knnMatch(descriptors_1, descriptors_2, knn_matches, 2);
-
-// 			good_matches = pruneMatchesWithLowe(knn_matches);
-
-// 			break;
-// 		}
-// 		case BF: {
-// 			// if NORM_L@2 or NORM_HAMMING !!!!!!!!!!!!!!
-
-// 			// cv::BFMatcher matcher(cv::NORM_HAMMING);
-// 			cv::BFMatcher matcher(cv::NORM_L2);
-// 			// cv::Ptr<cv::DescriptorMatcher> matcher = cv::BFMatcher::create(cv::NORM_L2);
-// 			// std::vector<cv::DMatch> matches;
-// 			// matcher->match(descriptors_1, descriptors_2, matches);
-
-// 			std::vector<std::vector<cv::DMatch>> knn_matches;
-// 			// matcher->knnMatch(descriptors_1, descriptors_2, knn_matches, 2);
-// 			matcher.knnMatch(descriptors_1, descriptors_2, knn_matches, 2);
-
-// 			good_matches = pruneMatchesWithLowe(knn_matches);
-
-// 			break;
-// 		}
-// 	}
-// }
 
 std::vector<cv::DMatch> structureFromMotion::featureMatch(matcherType matcherName, cv::Mat &descriptors_1, cv::Mat &descriptors_2) {
 	std::vector<cv::DMatch> good_matches;
@@ -286,7 +243,7 @@ void structureFromMotion::convert_to_float(cv::Mat &descriptors) {
 }
 
 // change name to getIntrinsics
-void structureFromMotion::getCameraMatrix() {
+void structureFromMotion::getIntrinsics() {
 	std::cout<<"--------------------------------------------------\n";
 	std::cout<<"            Getting camera matrix...\n";
 	std::cout<<"--------------------------------------------------\n";
@@ -306,8 +263,8 @@ void structureFromMotion::getCameraMatrix() {
     double cy = intrinsics.at<double>(1,2);
 
 	// cv::Mat_<double> cam_matrix = (cv::Mat_<double>(3, 3)<< fx, 0, cx,
-    // 														0, fy, cy,
-    //                                         				0,  0,  1);
+    														// 0, fy, cy,
+                                            				// 0,  0,  1);
 	
 	cv::Mat_<double> cam_matrix = (cv::Mat_<double>(3, 3)<< 2759.48, 0, 1520.69,
     														0, 2764.16, 1006.81,
@@ -349,7 +306,6 @@ void structureFromMotion::kpsToPts(std::vector<cv::KeyPoint> keypoints, std::vec
 }
 
 void structureFromMotion::alignPointsFromMatches(std::vector<cv::KeyPoint> kp_query, std::vector<cv::KeyPoint> kp_train, std::vector<cv::DMatch> matches, std::vector<cv::Point2d> &alignedQueryPts, std::vector<cv::Point2d> &alignedTrainPts) {
-	// maybe Point2f instead of Point2d
 	alignedQueryPts.clear();
 	alignedTrainPts.clear();
 
@@ -441,7 +397,6 @@ void structureFromMotion::pruneWithE(std::vector<cv::DMatch> matches, std::vecto
 }
 
 void structureFromMotion::findCameraMatrices (intrinsics intrinsics, const int queryImageIdx, const int trainImageIdx, std::vector<cv::DMatch> matches, std::vector<cv::KeyPoint> kpLeft, std::vector<cv::KeyPoint> kpRight, cv::Matx34d& Pleft, cv::Matx34d& Pright, std::vector<cv::DMatch> &prunedMatches) {
-	// prunedWithHom() ...
 
 	std::vector<cv::Point2d> alignedLeft;
   	std::vector<cv::Point2d> alignedRight;
@@ -474,7 +429,6 @@ void structureFromMotion::findCameraMatrices (intrinsics intrinsics, const int q
 }
 
 void structureFromMotion::triangulateViews(std::vector<cv::KeyPoint> kpQuery, std::vector<cv::KeyPoint> kpTrain, std::vector<cv::DMatch> matches, cv::Matx34d P1, cv::Matx34d P2, intrinsics cameraMatrix, std::pair<int, int> imgIdxPair, std::vector<Point3D> &pointcloud) {
-	// std::cout<<"Triangulating views...\n";
 
 	pointcloud.clear();
 
@@ -501,8 +455,6 @@ void structureFromMotion::triangulateViews(std::vector<cv::KeyPoint> kpQuery, st
 	// std::cout<<pts3d;
 
 	// export_to_json("fountain_ORB_BF", pts3d);
-
-
 
 	cv::Mat rvecLeft;
     cv::Rodrigues(P1.get_minor<3, 3>(0, 0), rvecLeft);
@@ -593,338 +545,6 @@ void structureFromMotion::baseReconstruction() {
 	pointcloud_to_ply("../reconstructions/" + reconstructionName + "/base/baseReconstruction");
 }
 
-// void structureFromMotion::find2d3dmatches(int newView, std::vector<cv::Point3d> &points3D, std::vector<cv::Point2d> &points2D, int &doneView) {
-// 	points3D.clear(); 
-// 	points2D.clear();
-//     int queryImageIdx;
-// 	int trainImageIdx;
-//     size_t bestMatchesNum = 0;
-//     std::vector<cv::DMatch> bestMatches;
-// 	//WRONG!!!!!! maybe
-// 	for (int view:doneViews) {
-//         if (newView < view) {
-//             queryImageIdx = newView;
-//             trainImageIdx = view;
-//         }
-// 		else {
-//             queryImageIdx = view;
-//             trainImageIdx = newView;
-//         }
-
-// 		size_t matchesNum = featureMatchMatrix[queryImageIdx][trainImageIdx].size();
-// 		if (matchesNum > bestMatchesNum) {
-// 			bestMatchesNum = matchesNum;
-// 			bestMatches = featureMatchMatrix[queryImageIdx][trainImageIdx];
-// 			doneView = view;
-// 		}
-// 	}
-
-// 	for (Point3D cloudPoint:reconstructionCloud) {
-// 		bool found2DPoint = false;
-
-// 		for (std::pair<const int, int> origViewAndPoint:cloudPoint.idxImage) {
-// 			int origViewIdx = origViewAndPoint.first;
-// 			int origViewFeatureIdx = origViewAndPoint.second;
-		
-// 			if (origViewIdx != doneView) continue;
-
-// 			for (cv::DMatch match:bestMatches) {
-// 				int matched2DPointInNewView = -1;
-
-// 				if (origViewIdx < newView) {
-
-// 					if (match.queryIdx == origViewFeatureIdx) {
-// 						matched2DPointInNewView = match.trainIdx;
-// 					}
-// 				}
-// 				else {
-
-// 					if (match.trainIdx == origViewFeatureIdx) {
-// 						matched2DPointInNewView = match.queryIdx;
-// 					}
-// 				}
-
-// 				if (matched2DPointInNewView >= 0) {
-// 					std::vector<cv::Point2d> newViewFeatures = imagesPts2D[newView];
-// 					points2D.push_back(newViewFeatures.at(matched2DPointInNewView));
-// 					points3D.push_back(cloudPoint.pt);
-// 					found2DPoint = true;
-// 					break;
-// 				}
-// 			}
-// 			if(found2DPoint) break;
-// 		}
-// 	}
-// }
-
-// bool structureFromMotion::findCameraPosePNP(intrinsics cameraMatrix, std::vector<cv::Point3d> pts3D, std::vector<cv::Point2d> pts2D, cv::Matx34d &P) {
-// 	if (pts3D.size() <= 7 || pts2D.size() <= 7 || pts3D.size() != pts2D.size()) {
-// 		std::cerr << "Could not find enough corresponding cloud points... (only " << pts3D.size() << ")\n";
-// 		return false;
-// 	}
-
-// 	cv::Mat rvec, T;
-// 	std::vector<int> inliers;
-// 	// cv::Mat mask;
-// 	double minVal, maxVal;
-// 	cv::minMaxIdx(pts2D, &minVal, &maxVal);
-// 	cv::solvePnPRansac(pts3D, pts2D, cameraMatrix.K, cameraMatrix.distCoef, rvec, T, true, 1000, 0.006*maxVal, 0.99, inliers, 1);
-// 	// cv::solvePnPRansac(pts3D, pts2D, cameraMatrix.K, cameraMatrix.distCoef, rvec, T, false, 100, 10.0f, 0.99, mask);
-
-// 	cv::Mat R;
-//   	cv::Rodrigues(rvec, R);
-
-//   	if (!CheckCoherentRotation(R)) {
-// 		std::cerr<<"Invalid rotation\n";
-// 		return false;
-// 	}
-
-// 	P = cv::Matx34d(R.at<double>(0,0), R.at<double>(0,1), R.at<double>(0,2), T.at<double>(0),
-//                   	R.at<double>(1,0), R.at<double>(1,1), R.at<double>(1,2), T.at<double>(1),
-//                   	R.at<double>(2,0), R.at<double>(2,1), R.at<double>(2,2), T.at<double>(2));
-
-// 	return true;
-// }
-
-// void structureFromMotion::addPoints(std::vector<Point3D> newPtCloud) {
-// 	std::cout<<"Adding new points...\n";
-
-// 	for (Point3D newPt:newPtCloud) {
-// 		bool foundMatching3DPoint = false;
-// 		for (Point3D& existingPt:reconstructionCloud) {
-// 			if (cv::norm(existingPt.pt - newPt.pt) < 0.01) {
-// 				foundMatching3DPoint = true;
-// 				break;
-// 			}
-// 		}
-// 		if (!foundMatching3DPoint) reconstructionCloud.push_back(newPt);
-// 	}
-// }
-
-// void structureFromMotion::addViews() {
-// 	std::vector<cv::Point3d> points3d;
-//     std::vector<cv::Point2d> points2d;
-
-// 	while (doneViews.size() != images.size()) { // or <
-// 		std::set<int> newFrames;
-
-// 		for (int viewsIdx:doneViews) {
-// 			int view1;
-// 			int view2;
-
-// 			if (viewsIdx == 0) {
-//                 view1 = viewsIdx;
-//                 view2 = viewsIdx+1;
-//             }
-// 			else if (viewsIdx == images.size()-1) {
-//                 view1 = viewsIdx-1;
-//                 view2 = viewsIdx;
-//             }
-// 			else {
-//             	view1 = viewsIdx-1;
-//                 view2 = viewsIdx+1;
-//             }
-
-// 			if (doneViews.count(view1) == 0) newFrames.insert(view1);
-// 			if (doneViews.count(view2) == 0) newFrames.insert(view2);
-
-// 		}
-
-// 		for (int frame:newFrames) {
-// 			if (doneViews.count(frame) == 1) continue;
-
-// 			// std::vector<cv::DMatch> bestMatches;
-// 			int doneView;
-// 			// WRONG!!!!!!!!!!!!!!!
-// 			find2d3dmatches(frame, points3d, points2d, doneView);
-
-// 			doneViews.insert(frame);
-
-// 			cv::Matx34d newP = cv::Matx34d::eye();
-
-// 			bool pose_estimation_succes = findCameraPosePNP(camMatrix, points3d, points2d, newP);
-			
-// 			if (!pose_estimation_succes) {
-// 				std::cout << "Pose estimation failed. Skipping view...\n";
-// 				continue;
-// 			}
-
-// 			cameraPoses[frame] = newP;
-
-// 			// std::vector<Point3D> newPointCloud;
-
-// 			for (int goodView:goodViews) {
-// 				int queryImageIdx;
-// 				int trainImageIdx;
-
-// 				if (frame < goodView) {
-// 					queryImageIdx = frame;
-// 					trainImageIdx = goodView;
-// 				}
-// 				else {
-// 					queryImageIdx = goodView;
-// 					trainImageIdx = frame;
-// 				}
-
-// 				cv::Matx34d Pleft  = cv::Matx34d::eye();
-//     			cv::Matx34d Pright = cv::Matx34d::eye();
-
-// 				std::vector<cv::DMatch> pruned_matches;
-
-// 				findCameraMatrices(camMatrix, queryImageIdx, trainImageIdx, featureMatchMatrix[queryImageIdx][trainImageIdx], imagesKps[queryImageIdx], imagesKps[trainImageIdx], Pleft, Pright, pruned_matches);
-// 				featureMatchMatrix[queryImageIdx][trainImageIdx] = pruned_matches;
-
-// 				showMatches(queryImageIdx, trainImageIdx, pruned_matches);
-
-// 				std::vector<Point3D> newPointCloud;
-// 				triangulateViews(imagesKps[queryImageIdx], imagesKps[trainImageIdx], featureMatchMatrix[queryImageIdx][trainImageIdx], cameraPoses[queryImageIdx], cameraPoses[trainImageIdx], camMatrix, std::make_pair(queryImageIdx, trainImageIdx), newPointCloud);
-			
-// 				addPoints(newPointCloud);
-			
-// 				// maybe bundle adjustment here
-// 			}
-
-// 			goodViews.insert(frame);
-			
-// 			sfmBundleAdjustment::adjustBundle(reconstructionCloud, cameraPoses, camMatrix, imagesPts2D);
-
-// 		}
-// 		continue;
-// 	}
-// }
-
-void structureFromMotion::run_reconstruction() {
-	std::filesystem::create_directories("../reconstructions/" + reconstructionName);
-	std::filesystem::create_directories("../reconstructions/" + reconstructionName + "/base");
-    std::filesystem::create_directories("../reconstructions/" + reconstructionName + "/sparse");
-    std::filesystem::create_directories("../reconstructions/" + reconstructionName + "/dense");
-    std::filesystem::create_directories("../reconstructions/" + reconstructionName + "/mesh");
-	
-	
-	setLogging();
-
-	loadImages();
-	
-	getCameraMatrix();
-
-	getFeatures();
-
-	createFeatureMatchMatrix();
-	
-	baseReconstruction();
-
-	addViews();
-
-}
-
-void structureFromMotion::pointcloud_to_ply(const std::string &filename) {
-	std::cout<<"Saving the pointcloud to file: "<<filename<<".ply\n";
-
-	std::ofstream output(filename + ".ply");
-
-	output<<"ply\n"<<
-            "format ascii 1.0\n"<<
-            "element vertex " << reconstructionCloud.size() <<"\n"<<
-            "property float x\n"<<
-            "property float y\n"<<
-            "property float z\n"<<
-            "property uchar red\n"<<
-            "property uchar green\n"<<
-            "property uchar blue\n"<<
-            "end_header\n";
-
-	for (Point3D &point : reconstructionCloud) {
-		auto originView = point.idxImage.begin();
-		const int viewIdx = originView->first;
-		cv::Point2d point2d = imagesPts2D[viewIdx][originView->second];
-		cv::Vec3b pointColor = images[viewIdx].at<cv::Vec3b>(point2d);
-
-		output << point.pt.x << " " <<
-        	   	  point.pt.y << " " <<
-			      point.pt.z << " " <<
-			   	  (int)pointColor(2) << " " <<
-			   	  (int)pointColor(1) << " " <<
-			   	  (int)pointColor(0) << "\n";
-	}
-
-	output.close();
-
-}
-
-void structureFromMotion::PMVS2(){
-
-  /*FOLDERS FOR PMVS2*/
-  std::cout << "Creating folders for PMVS2..." << std::endl;
-  int dont_care;
-  dont_care = std::system("mkdir -p denseCloud/visualize");
-  dont_care = std::system("mkdir -p denseCloud/txt");
-  dont_care = std::system("mkdir -p denseCloud/models");
-  std::cout << "Created: \nfolder:visualize" << "\n" << "folder:txt" << "\n" << "folder:models\n";
-
-  /*OPTIONS CONFIGURATION FILE FOR PMVS2*/
-  std::cout << "Creating options file for PMVS2...\n";
-  std::ofstream option("denseCloud/options.txt");
-  option << "minImageNum 5\n";
-  option << "CPU 4\n";
-  option << "timages  -1 " << 0 << " " << (images.size()-1) << "\n";
-  option << "oimages 0\n";
-  option << "level 1\n";
-  option.close();
-  std::cout << "Created: options.txt\n";
-
-  /*CAMERA POSES AND IMAGES INPUT FOR PMVS2*/
-  std::cout << "Saving camera poses for PMVS2...\n";
-  std::cout << "Saving camera images for PMVS2...\n";
-  for(int i=0; i<cameraPoses.size(); i++) {
-
-      /*
-      cv::Matx33f R = pose.get_minor<3, 3>(0, 0);
-      Eigen::Map<Eigen::Matrix3f> R_eigen(R.val);
-      Eigen::Quaternionf q(R_eigen);
-      */
-
-      char str[256];
-      boost::filesystem::directory_entry x(imagesPaths[i]);
-      std::string extension = x.path().extension().string();
-      boost::algorithm::to_lower(extension);
-
-      std::sprintf(str, "cp -f %s denseCloud/visualize/%04d.jpg", imagesPaths[i].c_str(), (int)i);
-      dont_care = std::system(str);
-      cv::imwrite(str, images[i]);
-
-      std::sprintf(str, "denseCloud/txt/%04d.txt", (int)i);
-      std::ofstream ofs(str);
-      cv::Matx34d pose = cameraPoses[i];
-
-      //K*P
-      pose = (cv::Matx33d)camMatrix.K*pose;
-
-      ofs << "CONTOUR" << std::endl;
-      ofs << pose(0,0) << " " << pose(0,1) << " " << pose(0,2) << " " << pose(0,3) << "\n"
-          << pose(1,0) << " " << pose(1,1) << " " << pose(1,2) << " " << pose(1,3) << "\n"
-          << pose(2,0) << " " << pose(2,1) << " " << pose(2,2) << " " << pose(2,3) << std::endl;
-
-      ofs << std::endl;
-      ofs.close();
-  } 
-  std::cout << "Camera poses saved." << "\n" << "Camera images saved." << std::endl; 
-}
-
-void structureFromMotion::export_to_json(std:: string filename, cv::Mat matrix) {
-    cv::FileStorage fs("/home/csimage/GitRepos/3rdYear/vr3dmodels/" + filename + ".json", cv::FileStorage::WRITE);
-    fs<<"Matrix"<<matrix;
-    fs.release();
-}
-
-void structureFromMotion::setLogging() {
-	cv::utils::logging::setLogLevel(cv::utils::logging::LogLevel::LOG_LEVEL_SILENT);
-}
-
-
-
-
-// -------------------------------------------------------------------------------------------------
-
 structureFromMotion::image2D3DMatches structureFromMotion::find2d3dmatches() {
 	image2D3DMatches matches;
 	
@@ -979,6 +599,11 @@ structureFromMotion::image2D3DMatches structureFromMotion::find2d3dmatches() {
 bool structureFromMotion::findCameraPosePNP(intrinsics cameraMatrix, std::vector<cv::Point3d> pts3D, std::vector<cv::Point2d> pts2D, cv::Matx34d &P) {
 	cv::Mat rvec, T;
 	cv::Mat mask;
+
+	if (pts2D.size() < 4 || pts3D.size() < 4) {
+        std::cout << "Not enough matches for PnPRansac..." << std::endl;
+        return false;
+    }
 
 	cv::solvePnPRansac(pts3D, pts2D, cameraMatrix.K, cameraMatrix.distCoef, rvec, T, false, 100, 10.0f, 0.99, mask);
 
@@ -1132,6 +757,127 @@ void structureFromMotion::addViews() {
 		}			
 		sfmBundleAdjustment::adjustBundle(reconstructionCloud, cameraPoses, camMatrix, imagesPts2D);
 		goodViews.insert(bestView);
-		pointcloud_to_ply("fountain_" + std::to_string(bestView));
+		// pointcloud_to_ply("fountain_" + std::to_string(bestView));
 	}
+}
+
+void structureFromMotion::run_reconstruction() {
+	std::filesystem::create_directories("../reconstructions/" + reconstructionName);
+	std::filesystem::create_directories("../reconstructions/" + reconstructionName + "/base");
+    std::filesystem::create_directories("../reconstructions/" + reconstructionName + "/sparse");
+    std::filesystem::create_directories("../reconstructions/" + reconstructionName + "/dense");
+    std::filesystem::create_directories("../reconstructions/" + reconstructionName + "/mesh");
+	
+	
+	setLogging();
+
+	loadImages();
+	
+	getIntrinsics();
+
+	getFeatures();
+
+	createFeatureMatchMatrix();
+	
+	baseReconstruction();
+
+	addViews();
+
+}
+
+void structureFromMotion::pointcloud_to_ply(const std::string &filename) {
+	std::cout<<"Saving the pointcloud to file: "<<filename<<".ply\n";
+
+	std::ofstream output(filename + ".ply");
+
+	output<<"ply\n"<<
+            "format ascii 1.0\n"<<
+            "element vertex " << reconstructionCloud.size() <<"\n"<<
+            "property float x\n"<<
+            "property float y\n"<<
+            "property float z\n"<<
+            "property uchar red\n"<<
+            "property uchar green\n"<<
+            "property uchar blue\n"<<
+            "end_header\n";
+
+	for (Point3D &point : reconstructionCloud) {
+		auto originView = point.idxImage.begin();
+		const int viewIdx = originView->first;
+		cv::Point2d point2d = imagesPts2D[viewIdx][originView->second];
+		cv::Vec3b pointColor = images[viewIdx].at<cv::Vec3b>(point2d);
+
+		output << point.pt.x << " " <<
+        	   	  point.pt.y << " " <<
+			      point.pt.z << " " <<
+			   	  (int)pointColor(2) << " " <<
+			   	  (int)pointColor(1) << " " <<
+			   	  (int)pointColor(0) << "\n";
+	}
+
+	output.close();
+
+}
+
+void structureFromMotion::PMVS2(){
+
+  /*FOLDERS FOR PMVS2*/
+  std::cout << "Creating folders for PMVS2..." << std::endl;
+  int dont_care;
+  dont_care = std::system("mkdir -p denseCloud/visualize");
+  dont_care = std::system("mkdir -p denseCloud/txt");
+  dont_care = std::system("mkdir -p denseCloud/models");
+  std::cout << "Created: \nfolder:visualize" << "\n" << "folder:txt" << "\n" << "folder:models\n";
+
+  /*OPTIONS CONFIGURATION FILE FOR PMVS2*/
+  std::cout << "Creating options file for PMVS2...\n";
+  std::ofstream option("denseCloud/options.txt");
+  option << "minImageNum 5\n";
+  option << "CPU 4\n";
+  option << "timages  -1 " << 0 << " " << (images.size()-1) << "\n";
+  option << "oimages 0\n";
+  option << "level 1\n";
+  option.close();
+  std::cout << "Created: options.txt\n";
+
+  /*CAMERA POSES AND IMAGES INPUT FOR PMVS2*/
+  std::cout << "Saving camera poses for PMVS2...\n";
+  std::cout << "Saving camera images for PMVS2...\n";
+  for(int i=0; i<cameraPoses.size(); i++) {
+
+      char str[256];
+      boost::filesystem::directory_entry x(imagesPaths[i]);
+      std::string extension = x.path().extension().string();
+      boost::algorithm::to_lower(extension);
+
+      std::sprintf(str, "cp -f %s denseCloud/visualize/%04d.jpg", imagesPaths[i].c_str(), (int)i);
+      dont_care = std::system(str);
+      cv::imwrite(str, images[i]);
+
+      std::sprintf(str, "denseCloud/txt/%04d.txt", (int)i);
+      std::ofstream ofs(str);
+      cv::Matx34d pose = cameraPoses[i];
+
+      //K*P
+      pose = (cv::Matx33d)camMatrix.K*pose;
+
+      ofs << "CONTOUR" << std::endl;
+      ofs << pose(0,0) << " " << pose(0,1) << " " << pose(0,2) << " " << pose(0,3) << "\n"
+          << pose(1,0) << " " << pose(1,1) << " " << pose(1,2) << " " << pose(1,3) << "\n"
+          << pose(2,0) << " " << pose(2,1) << " " << pose(2,2) << " " << pose(2,3) << std::endl;
+
+      ofs << std::endl;
+      ofs.close();
+  } 
+  std::cout << "Camera poses saved." << "\n" << "Camera images saved." << std::endl; 
+}
+
+void structureFromMotion::export_to_json(std:: string filename, cv::Mat matrix) {
+    cv::FileStorage fs("/home/csimage/GitRepos/3rdYear/vr3dmodels/" + filename + ".json", cv::FileStorage::WRITE);
+    fs<<"Matrix"<<matrix;
+    fs.release();
+}
+
+void structureFromMotion::setLogging() {
+	cv::utils::logging::setLogLevel(cv::utils::logging::LogLevel::LOG_LEVEL_SILENT);
 }

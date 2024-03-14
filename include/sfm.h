@@ -2,14 +2,9 @@
 #include <fstream>
 #include <thread>
 #include <filesystem>
-// #include <opencv2/features2d.hpp>
-// #include <opencv2/xfeatures2d.hpp>
-// #include <opencv2/highgui.hpp>
-// #include <opencv2/calib3d.hpp>
 #include <opencv2/core/utils/logger.hpp>
 #include "ioUtils.h"
 #include "cameraCalibration.h"
-// #include "utilities.h"
 #include "sfmBundleAdjustment.h"
 
 #include <boost/algorithm/string.hpp>
@@ -50,7 +45,7 @@ class structureFromMotion {
         std::vector<cv::DMatch> featureMatch(matcherType matcherName, cv::Mat &descriptors_1, cv::Mat &descriptors_2);
         void createFeatureMatchMatrix();
         void convert_to_float(cv::Mat &descriptors);
-        void getCameraMatrix();
+        void getIntrinsics();
         bool CheckCoherentRotation(const cv::Mat_<double>& R);
         void kpsToPts(std::vector<cv::KeyPoint> keypoints, std::vector<cv::Point2d> &points2D);
         void alignPointsFromMatches(std::vector<cv::KeyPoint> kp_query, std::vector<cv::KeyPoint> kp_train, std::vector<cv::DMatch> matches, std::vector<cv::Point2d> &alignedQueryPts, std::vector<cv::Point2d> &alignedTrainPts);
@@ -61,14 +56,12 @@ class structureFromMotion {
         void findCameraMatrices(intrinsics intrinsics, const int queryImageIdx, const int trainImageIdx, std::vector<cv::DMatch> matches, std::vector<cv::KeyPoint> kpLeft, std::vector<cv::KeyPoint> kpRight, cv::Matx34d& Pleft, cv::Matx34d& Pright, std::vector<cv::DMatch> &prunedMatches);
         void triangulateViews(std::vector<cv::KeyPoint> kpQuery, std::vector<cv::KeyPoint> kpTrain, std::vector<cv::DMatch> matches, cv::Matx34d P1, cv::Matx34d P2, intrinsics cameraMatrix, std::pair<int, int> imgIdxPair, std::vector<Point3D> &pointcloud);
         void baseReconstruction();
-        // void find2d3dmatches(int newView, std::vector<cv::Point3d> &points3D, std::vector<cv::Point2d> &points2D, int &doneView);
         image2D3DMatches find2d3dmatches();
         bool findCameraPosePNP(intrinsics cameraMatrix, std::vector<cv::Point3d> pts3D, std::vector<cv::Point2d> pts2D, cv::Matx34d &P);
         void addPoints(std::vector<Point3D> newPtCloud);
         void addViews();
 		void run_reconstruction();
         void pointcloud_to_ply(const std::string &filename);
-		// void ply_to_pcd(std::string plyFilePath, std::string pcdFilePath);
         void PMVS2();
         void export_to_json(std:: string filename, cv::Mat matrix);
         void setLogging();

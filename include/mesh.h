@@ -15,7 +15,6 @@ class Mesh {
 	
 	public:
 		void filter_and_remove_points(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud, pcl::PointCloud<pcl::PointXYZ>::Ptr &filterCloud);
-		void saveMeshToPLY(const pcl::PolygonMesh& mesh, const std::string& filename);
 		void create_mesh(std::string input_file, std::string output_file);
 
 };

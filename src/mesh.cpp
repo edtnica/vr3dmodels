@@ -14,15 +14,6 @@ void Mesh::filter_and_remove_points(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud, 
 	radius_outlier_removal.filter(*filterCloud);
 }
 
-void Mesh::saveMeshToPLY(const pcl::PolygonMesh& mesh, const std::string& filename) {
-    if (pcl::io::savePLYFile(filename, mesh, false) == 0) {
-        std::cout << "Mesh saved successfully to " << filename << "\n";
-    }
-	else {
-        std::cout << "Error saving mesh to " << filename << "\n";
-    }
-}
-
 void Mesh::create_mesh(std::string input_file, std::string output_file) {
 	
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
@@ -50,20 +41,20 @@ void Mesh::create_mesh(std::string input_file, std::string output_file) {
 		cloud_normals->points[i].normal_z *= -1;
 	}
 	pcl::PointCloud<pcl::PointNormal>::Ptr cloud_smoothed_normals (new pcl::PointCloud<pcl::PointNormal> ());
-	pcl::concatenateFields (*cloud, *cloud_normals, *cloud_smoothed_normals);//x
+	pcl::concatenateFields (*cloud, *cloud_normals, *cloud_smoothed_normals);
 
 	pcl::Poisson<pcl::PointNormal> poisson;
 
-	poisson.setDepth(7);//9
+	poisson.setDepth(9); // 7 or 9
 	poisson.setInputCloud(cloud_smoothed_normals);
-	poisson.setPointWeight(4);//4
-	poisson.setSamplesPerNode(1.5);//1.5
-	poisson.setScale(1.1);//1.1
-	poisson.setIsoDivide(8);//8
+	poisson.setPointWeight(4);
+	poisson.setSamplesPerNode(1.5);
+	poisson.setScale(1.1);
+	poisson.setIsoDivide(8);
 	poisson.setConfidence(1);
 	poisson.setManifold(0);
 	poisson.setOutputPolygons(0);
-	poisson.setSolverDivide(8);//8
+	poisson.setSolverDivide(8);
 	poisson.reconstruct(mesh);
 	
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloudRGB(new pcl::PointCloud<pcl::PointXYZRGB>());
@@ -71,19 +62,15 @@ void Mesh::create_mesh(std::string input_file, std::string output_file) {
 	pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
     kdtree.setInputCloud(cloudRGB);
 
-    // Prepare a PointCloud with the same structure as the mesh vertices but to store RGB information
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr mesh_cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
     pcl::fromPCLPointCloud2(mesh.cloud, *mesh_cloud);
 
-    // For each vertex in the mesh, find the nearest neighbor in the original cloud and assign its color
     for (size_t i = 0; i < mesh_cloud->points.size(); ++i) {
         pcl::PointXYZRGB& mesh_point = mesh_cloud->points[i];
         std::vector<int> pointIdxNKNSearch(1);
         std::vector<float> pointNKNSquaredDistance(1);
 
-        // Find the nearest neighbor
         if (kdtree.nearestKSearch(mesh_point, 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0) {
-            // Assign the color from the nearest neighbor
             const pcl::PointXYZRGB& nearest_point = cloudRGB->points[pointIdxNKNSearch[0]];
             mesh_point.r = nearest_point.r;
             mesh_point.g = nearest_point.g;
@@ -92,16 +79,16 @@ void Mesh::create_mesh(std::string input_file, std::string output_file) {
 	}
 
 	pcl::toPCLPointCloud2(*mesh_cloud, mesh.cloud);
-	//saveMeshToPLY(mesh, output_file);
+	pcl::io::savePLYFile("../reconstructions/" + output_file + "/mesh/mesh.ply", mesh);
 
-	pcl::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
-    viewer->setBackgroundColor(0, 0, 0);
-    viewer->addPolygonMesh(mesh, "meshes");
-    viewer->initCameraParameters();
+	// pcl::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
+    // viewer->setBackgroundColor(0, 0, 0);
+    // viewer->addPolygonMesh(mesh, "meshes");
+    // viewer->initCameraParameters();
 
-    std::cout << "Press q to exit." << std::endl;
-    while (!viewer->wasStopped()) {
-        viewer->spin();
-    }
+    // std::cout << "Press q to exit." << std::endl;
+    // while (!viewer->wasStopped()) {
+        // viewer->spin();
+    // }
 
 }
